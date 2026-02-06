@@ -1,0 +1,1306 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Document Ingestion Prompt Management - Scope-Based View (MVP)</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Arial, sans-serif;
+            font-size: 13px;
+            background-color: #f5f5f5;
+        }
+
+        .header {
+            background-color: #fff;
+            border-bottom: 1px solid #ccc;
+            padding: 10px 20px;
+            text-align: center;
+            font-weight: bold;
+            font-size: 14px;
+        }
+
+        .tabs {
+            background-color: #fff;
+            border-bottom: 1px solid #ccc;
+            padding: 0 20px;
+            display: flex;
+            gap: 10px;
+            flex-shrink: 0;
+        }
+
+        .tab {
+            padding: 10px 20px;
+            cursor: pointer;
+            border-bottom: 2px solid transparent;
+            text-decoration: none;
+            color: #333;
+        }
+
+        .tab.active {
+            color: #0066cc;
+            border-bottom-color: #0066cc;
+            font-weight: bold;
+        }
+
+        .container {
+            display: flex;
+            height: calc(100vh - 50px);
+            background-color: #fff;
+        }
+
+        .nav-panel {
+            width: 180px;
+            background-color: #f9f9f9;
+            border-right: 1px solid #ccc;
+            padding: 10px;
+            overflow-y: auto;
+        }
+
+        .right-panel {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+        }
+
+        .nav-header {
+            font-weight: bold;
+            padding: 8px;
+            margin-bottom: 10px;
+            border-bottom: 1px solid #ccc;
+        }
+
+        .nav-item {
+            padding: 8px;
+            cursor: pointer;
+            border-radius: 3px;
+            margin-bottom: 2px;
+        }
+
+        .nav-item:hover {
+            background-color: #e0e0e0;
+        }
+
+        .nav-item.active {
+            background-color: #0066cc;
+            color: white;
+            font-weight: bold;
+        }
+
+        .scope-panel {
+            display: none;
+        }
+
+        .prompt-edit-textarea {
+            min-height: 300px;
+            padding: 8px;
+            border: 1px solid #ccc;
+            border-radius: 3px;
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Arial, sans-serif;
+            font-size: 12px;
+            resize: vertical;
+            background-color: #fff;
+            line-height: 1.5;
+        }
+
+        .prompt-edit-textarea.read-only {
+            background-color: #f5f5f5;
+            color: #666;
+            cursor: not-allowed;
+        }
+
+        .prompt-edit-textarea.editable {
+            background-color: #fffdf0;
+        }
+
+        .prompt-edit-textarea.editable:focus {
+            background-color: #fff;
+            outline: 2px solid #0066cc;
+        }
+
+        .prompt-edit-textarea.has-changes {
+            border-left: 3px solid #ffc107;
+            background-color: #fffdf0;
+        }
+
+        .filter-bar {
+            padding: 12px 15px;
+            background-color: #f9f9f9;
+            border-bottom: 1px solid #ddd;
+            display: flex;
+            gap: 12px;
+            align-items: center;
+            flex-wrap: wrap;
+        }
+
+        .filter-group {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+
+        .filter-group-label {
+            font-weight: 600;
+            font-size: 12px;
+            color: #333;
+        }
+
+        .filter-group-select {
+            padding: 6px 10px;
+            border: 1px solid #ccc;
+            border-radius: 3px;
+            font-size: 12px;
+            min-width: 110px;
+            background-color: #fff;
+        }
+
+        .grid-panel {
+            flex: 1;
+            overflow: auto;
+            padding: 10px;
+        }
+
+        .button-toolbar {
+            padding: 10px;
+            border-bottom: 1px solid #ddd;
+            background-color: #f9f9f9;
+            display: flex;
+            gap: 10px;
+        }
+
+        .toolbar-button {
+            padding: 8px 16px;
+            border: 1px solid #ccc;
+            background-color: #fff;
+            cursor: pointer;
+            border-radius: 3px;
+        }
+
+        .toolbar-button:hover {
+            background-color: #f0f0f0;
+        }
+
+        .toolbar-button.primary {
+            background-color: #0066cc;
+            color: white;
+            border-color: #0066cc;
+        }
+
+        .toolbar-button.primary:hover {
+            background-color: #0052a3;
+        }
+
+        .toolbar-select {
+            padding: 8px 16px;
+            border: 1px solid #ccc;
+            background-color: #fff;
+            cursor: pointer;
+            border-radius: 3px;
+            min-width: 150px;
+        }
+
+        .grid-table {
+            width: 100%;
+            border-collapse: collapse;
+            background-color: #fff;
+        }
+
+        .grid-table th {
+            background-color: #e0e0e0;
+            padding: 10px 8px;
+            text-align: left;
+            border: 1px solid #ccc;
+            font-weight: bold;
+            position: sticky;
+            top: 0;
+            z-index: 10;
+        }
+
+        .grid-table td {
+            padding: 8px;
+            border: 1px solid #ddd;
+            vertical-align: top;
+        }
+
+        .grid-table tr:hover {
+            background-color: #f9f9f9;
+        }
+
+        .element-row {
+            cursor: pointer;
+        }
+
+        .element-row.parent {
+            font-weight: bold;
+        }
+
+        .element-content {
+            display: block;
+        }
+
+        .element-content.level-1 {
+            margin-left: 20px;
+        }
+
+        .element-content.level-2 {
+            margin-left: 40px;
+        }
+
+        .expand-icon {
+            display: inline-block;
+            width: 16px;
+            margin-right: 5px;
+            font-family: monospace;
+        }
+
+        .editable {
+            background-color: #fffdf0;
+            padding: 4px;
+            border-radius: 2px;
+        }
+
+        .editable:hover {
+            background-color: #fff9d0;
+            outline: 1px solid #ccc;
+        }
+
+        .read-only {
+            background-color: #f5f5f5;
+            color: #666;
+        }
+
+        .detail-row {
+            display: none;
+        }
+
+        .detail-row.expanded {
+            display: table-row;
+        }
+
+        .detail-content {
+            padding: 15px;
+            background-color: #fafafa;
+        }
+
+        .prompts-container {
+            display: flex;
+            gap: 15px;
+            align-items: flex-start;
+        }
+
+        .prompt-field {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            gap: 5px;
+        }
+
+        .prompt-label {
+            font-weight: 600;
+            font-size: 12px;
+            color: #333;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        .prompt-textarea {
+            min-height: 150px;
+            padding: 8px;
+            border: 1px solid #ccc;
+            border-radius: 3px;
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Arial, sans-serif;
+            font-size: 12px;
+            resize: vertical;
+            background-color: #fff;
+            line-height: 1.5;
+        }
+
+        .prompt-textarea.read-only {
+            background-color: #f5f5f5;
+            color: #666;
+            cursor: not-allowed;
+        }
+
+        .prompt-textarea.editable {
+            background-color: #fffdf0;
+        }
+
+        .prompt-textarea.editable:focus {
+            background-color: #fff;
+            outline: 2px solid #0066cc;
+        }
+
+        .prompt-textarea.editable.has-changes {
+            border-left: 3px solid #ffc107;
+            background-color: #fffdf0;
+        }
+
+        .hidden-field {
+            display: none;
+        }
+
+        .element-row {
+            display: none;
+        }
+
+        .scope-badge {
+            display: inline-block;
+            padding: 2px 6px;
+            background-color: #e0e0e0;
+            border-radius: 3px;
+            font-size: 11px;
+            margin: 1px;
+        }
+
+        .changes-banner {
+            background-color: #fff8e1;
+            border-bottom: 1px solid #ffc107;
+            padding: 12px 15px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            font-size: 13px;
+            gap: 15px;
+        }
+
+        .changes-banner.hidden {
+            display: none;
+        }
+
+        .changes-count {
+            font-weight: 600;
+            color: #333;
+        }
+
+        .banner-actions {
+            display: flex;
+            gap: 10px;
+        }
+
+        .banner-button {
+            padding: 6px 14px;
+            border: 1px solid #ffc107;
+            background-color: transparent;
+            color: #333;
+            cursor: pointer;
+            border-radius: 3px;
+            font-size: 12px;
+            font-weight: 600;
+        }
+
+        .banner-button:hover {
+            background-color: #ffc107;
+        }
+
+        .banner-button.primary {
+            background-color: #0066cc;
+            color: white;
+            border-color: #0066cc;
+        }
+
+        .banner-button.primary:hover {
+            background-color: #0052a3;
+        }
+
+        .edited-cell {
+            background-color: #fffdf0 !important;
+            border-left: 3px solid #ffc107;
+        }
+
+        .has-changes-badge::after {
+            content: '●';
+            color: #ff9800;
+            margin-left: 6px;
+            font-size: 8px;
+        }
+
+        .product-column {
+            display: none;
+        }
+
+        .product-column.visible {
+            display: table-cell;
+        }
+
+        .hidden {
+            display: none;
+        }
+
+        .main-content {
+            display: flex;
+            flex: 1;
+            overflow: hidden;
+            gap: 0;
+        }
+
+        .scope-tree-panel {
+            width: 200px;
+            background-color: #f9f9f9;
+            border-right: 1px solid #ddd;
+            overflow-y: auto;
+            padding: 10px;
+            flex-shrink: 0;
+        }
+
+        .element-tree-panel {
+            width: 250px;
+            background-color: #f9f9f9;
+            border-right: 1px solid #ddd;
+            overflow-y: auto;
+            padding: 10px;
+            flex-shrink: 0;
+        }
+
+        .prompt-editor-panel {
+            flex: 1;
+            background-color: #fff;
+            overflow-y: auto;
+            padding: 20px;
+            display: flex;
+            flex-direction: column;
+            gap: 15px;
+        }
+
+        .prompt-editor-panel .empty-state {
+            flex: 1;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: #999;
+            font-style: italic;
+        }
+
+        .prompt-editor-panel .filter-group {
+            padding-bottom: 15px;
+            border-bottom: 1px solid #ddd;
+            display: none;
+        }
+
+        .prompt-editor-panel .filter-group.visible {
+            display: block;
+        }
+
+        .scope-tree-header {
+            font-weight: 600;
+            font-size: 12px;
+            color: #333;
+            margin-bottom: 10px;
+            padding: 8px;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        .element-tree-header {
+            font-weight: 600;
+            font-size: 12px;
+            color: #333;
+            margin-bottom: 10px;
+            padding: 8px;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        .tree-node {
+            padding: 0;
+            margin: 0;
+            list-style: none;
+        }
+
+        .tree-node-item {
+            padding: 6px 8px;
+            cursor: pointer;
+            border-radius: 3px;
+            display: flex;
+            align-items: center;
+            gap: 4px;
+            user-select: none;
+        }
+
+        .tree-node-item:hover {
+            background-color: #e8e8e8;
+        }
+
+        .tree-node-item.active {
+            background-color: #0066cc;
+            color: white;
+            font-weight: 600;
+        }
+
+        .tree-toggle {
+            display: inline-block;
+            width: 16px;
+            text-align: center;
+            font-family: monospace;
+            font-size: 12px;
+        }
+
+        .tree-toggle.leaf {
+            visibility: hidden;
+        }
+
+        .tree-children {
+            margin-left: 16px;
+        }
+
+        .tree-children.hidden {
+            display: none;
+        }
+
+        .grid-panel-container {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+        }
+
+        .element-tree-item {
+            padding: 6px 8px;
+            cursor: pointer;
+            border-radius: 3px;
+            display: flex;
+            align-items: center;
+            gap: 4px;
+            user-select: none;
+        }
+
+        .element-tree-item:hover {
+            background-color: #e8e8e8;
+        }
+
+        .element-tree-item.selected {
+            background-color: #0066cc;
+            color: white;
+            font-weight: 600;
+        }
+
+        .element-tree-item.parent {
+            font-weight: 600;
+        }
+
+        .element-tree-children {
+            margin-left: 16px;
+        }
+
+        .element-tree-children.hidden {
+            display: none;
+        }
+
+        .prompts-edit-section {
+            display: flex;
+            flex-direction: row;
+            gap: 15px;
+            align-items: flex-start;
+        }
+
+        .prompt-edit-field {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            gap: 6px;
+            min-width: 0;
+        }
+
+        .prompt-edit-label {
+            font-weight: 600;
+            font-size: 12px;
+            color: #333;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+    </style>
+</head>
+<body>
+    <div class="header">Document Ingestion Prompt Management - Scope-Based View (MVP)</div>
+    
+    <div class="container">
+        <div class="nav-panel">
+            <div class="nav-header">☰ WTW Willis</div>
+            <div class="nav-item">Home</div>
+            <div class="nav-item">All Placements</div>
+            <div class="nav-item">Templates</div>
+            <div class="nav-item">Document Ingestion</div>
+            <div class="nav-item active">→ Prompt Management</div>
+            <div class="nav-item">Service Hub</div>
+            <div class="nav-item">Risk Hub</div>
+            <div class="nav-item">Quality Index Buyers</div>
+            <div class="nav-item">Training Materials</div>
+        </div>
+
+        <div class="right-panel">
+            <div class="tabs">
+                <a href="DocumentIngestion-PromptManagement-ScopeView-MVP-v2.html" class="tab active">Edit Prompts</a>
+                <a href="DocumentIngestion-PromptManagement-PendingChanges-MVP-v2.html" class="tab">Review and Publish <span id="tabCounter" style="display: none;">(0)</span></a>
+            </div>
+
+            <div class="scope-panel">
+            <div class="scope-section">
+                <label class="scope-label">Team</label>
+                <select class="scope-select">
+                    <option>North America</option>
+                    <option>UK</option>
+                    <option>APAC</option>
+                </select>
+            </div>
+
+            <div class="scope-section">
+                <label class="scope-label">Broking Segment</label>
+                <select class="scope-select">
+                    <option>Global Line of Business</option>
+                    <option>Commercial</option>
+                    <option>Specialty</option>
+                </select>
+            </div>
+
+            <div class="scope-section">
+                <label class="scope-label">Document Type</label>
+                <select class="scope-select">
+                    <option>Quote</option>
+                    <option>Binder</option>
+                    <option>Policy</option>
+                </select>
+            </div>
+
+            <button class="scope-button">Apply</button>
+            <button class="scope-button">Clear All</button>
+        </div>
+
+            <div class="main-content">
+                <div class="scope-tree-panel">
+                    <div class="scope-tree-header">Scope Hierarchy</div>
+                    <ul class="tree-node">
+                        <li class="tree-node-item" onclick="event.stopPropagation(); toggleNode(this)">
+                            <span class="tree-toggle">▼</span>
+                            <span onclick="selectScope(this.parentElement, 'global')">Global</span>
+                        </li>
+                        <ul class="tree-children">
+                        </ul>
+                        
+                        <li class="tree-node-item" onclick="event.stopPropagation(); toggleNode(this)">
+                            <span class="tree-toggle">▼</span>
+                            <span onclick="selectScope(this.parentElement, 'na')">North America</span>
+                        </li>
+                        <ul class="tree-children">
+                            <li class="tree-node-item" onclick="event.stopPropagation(); toggleNode(this)">
+                                <span class="tree-toggle">▶</span>
+                                <span onclick="selectScope(this.parentElement, 'na-mm')">Middle Market</span>
+                            </li>
+                            <ul class="tree-children hidden">
+                            </ul>
+                            <li class="tree-node-item" onclick="event.stopPropagation(); toggleNode(this)">
+                                <span class="tree-toggle">▶</span>
+                                <span onclick="selectScope(this.parentElement, 'na-lc')">L&C</span>
+                            </li>
+                            <ul class="tree-children hidden">
+                            </ul>
+                        </ul>
+                        
+                        <li class="tree-node-item" onclick="event.stopPropagation(); toggleNode(this)">
+                            <span class="tree-toggle">▼</span>
+                            <span onclick="selectScope(this.parentElement, 'crb')">CRB</span>
+                        </li>
+                        <ul class="tree-children">
+                            <li class="tree-node-item" onclick="event.stopPropagation(); toggleNode(this)">
+                                <span class="tree-toggle">▶</span>
+                                <span onclick="selectScope(this.parentElement, 'crb-gb')">GB</span>
+                            </li>
+                            <ul class="tree-children hidden">
+                            </ul>
+                        <li class="tree-node-item" onclick="event.stopPropagation(); toggleNode(this)">
+                            <span class="tree-toggle">▼</span>
+                            <span onclick="selectScope(this.parentElement, 'spain')">Spain</span>
+                        </li>
+                        <ul class="tree-children">
+                            <li class="tree-node-item" onclick="event.stopPropagation(); toggleNode(this)">
+                                <span class="tree-toggle">▶</span>
+                                <span onclick="selectScope(this.parentElement, 'spain-madrid')">Madrid</span>
+                            </li>
+                            <ul class="tree-children hidden">
+                            </ul>
+                        </ul>
+                    </ul>
+                </div>
+
+                <div class="changes-banner hidden" id="changesBanner">
+                    <div class="changes-count">You have <span id="changesCount">0</span> unpublished change<span id="changeS">s</span></div>
+                    <div class="banner-actions">
+                        <button class="banner-button" onclick="discardChanges()">Discard</button>
+                        <button class="banner-button primary" onclick="goToReview()">Review & Publish</button>
+                    </div>
+                </div>
+
+                <div class="element-tree-panel">
+                    <div class="element-tree-header">Elements</div>
+                    <ul class="tree-node">
+                        <li class="element-tree-item" data-element-id="response-type" onclick="selectElement(this, 'response-type')">
+                            <span class="tree-toggle leaf"> </span>
+                            <span>Response Type</span>
+                        </li>
+                        
+                        <li class="element-tree-item" data-element-id="market-securities" onclick="selectElement(this, 'market-securities')">
+                            <span class="tree-toggle leaf"> </span>
+                            <span>Market Securities</span>
+                        </li>
+                        
+                        <li class="element-tree-item" data-element-id="quote-expiry" onclick="selectElement(this, 'quote-expiry')">
+                            <span class="tree-toggle leaf"> </span>
+                            <span>Quote Expiry Date</span>
+                        </li>
+                        
+                        <li class="element-tree-item" data-element-id="exposure" onclick="selectElement(this, 'exposure')">
+                            <span class="tree-toggle leaf"> </span>
+                            <span>Exposure</span>
+                        </li>
+                        
+                        <li class="element-tree-item parent" onclick="event.stopPropagation(); toggleElementNode(this)">
+                            <span class="tree-toggle">▼</span>
+                            <span>Premium/Cost Component</span>
+                        </li>
+                        <ul class="element-tree-children">
+                            <li class="element-tree-item" data-element-id="premium-description" onclick="selectElement(this, 'premium-description')">
+                                <span class="tree-toggle leaf"> </span>
+                                <span>Description</span>
+                            </li>
+                            
+                            <li class="element-tree-item" data-element-id="premium-amount" onclick="selectElement(this, 'premium-amount')">
+                                <span class="tree-toggle leaf"> </span>
+                                <span>Premium (Excl. Surplus Lines Tax, ...)</span>
+                            </li>
+                            
+                            <li class="element-tree-item" data-element-id="terrorism-coverage" onclick="selectElement(this, 'terrorism-coverage')">
+                                <span class="tree-toggle leaf"> </span>
+                                <span>Terrorism Coverage</span>
+                            </li>
+                            
+                            <li class="element-tree-item" data-element-id="surplus-lines-tax" onclick="selectElement(this, 'surplus-lines-tax')">
+                                <span class="tree-toggle leaf"> </span>
+                                <span>Surplus Lines Tax</span>
+                            </li>
+                        </ul>
+                        
+                        <li class="element-tree-item" data-element-id="broker-comments" onclick="selectElement(this, 'broker-comments')">
+                            <span class="tree-toggle leaf"> </span>
+                            <span>Broker Comments</span>
+                        </li>
+                    </ul>
+                </div>
+
+                <div class="prompt-editor-panel" id="promptEditor">
+                    <div class="filter-group">
+                        <label class="filter-group-label">Product:</label>
+                        <select class="filter-group-select" id="productSelect">
+                            <option>[None]</option>
+                            <option>Cyber</option>
+                            <option>Property</option>
+                            <option>Casualty</option>
+                            <option>D&O</option>
+                            <option>E&O</option>
+                        </select>
+                    </div>
+                    <div class="empty-state">
+                        <p>Select an element to edit prompts</p>
+                    </div>
+                </div>
+
+            <!-- Hidden data store for prompts -->
+            <div id="promptData" style="display: none;">
+                <!-- Response Type -->
+                <div data-element-id="response-type">
+                    <div class="global-prompt">Extract the response type from the document.
+
+Look for indicators such as:
+- Firm order
+- Quote
+- Indication
+- Declination
+
+Provide the response type as a single value.</div>
+                    <div class="team-prompt">For North America submissions, identify the response type with special attention to:
+
+- Market-specific language (e.g., "bound", "quoted")
+- Regional terminology differences
+- Date formats in MM/DD/YYYY
+
+Ensure consistency with North American market standards.</div>
+                    <div class="product-prompt">For cyber risk submissions, identify response type considering:
+
+- Cyber-specific coverage triggers
+- Conditional quotes based on security assessments
+- Multi-stage approval processes
+- Privacy law compliance requirements
+
+Highlight any cyber-conditional terms affecting the response.</div>
+                </div>
+
+                <!-- Market Securities -->
+                <div data-element-id="market-securities">
+                    <div class="global-prompt">List all market securities mentioned in the document.
+
+Include:
+- Market names
+- Security identifiers
+- ISIN/CUSIP numbers if present
+- Exchange codes
+
+Format as a comma-separated list.</div>
+                    <div class="team-prompt"></div>
+                    <div class="product-prompt"></div>
+                </div>
+
+                <!-- Quote Expiry Date -->
+                <div data-element-id="quote-expiry">
+                    <div class="global-prompt">Find the quote expiry date in the document.
+
+Look for:
+- Explicit "expiry" or "expiration" dates
+- "Valid until" dates
+- "Quote good through" language
+
+Return in ISO format (YYYY-MM-DD).</div>
+                    <div class="team-prompt">For North America quotes, extract the expiry date:
+
+- Convert to MM/DD/YYYY format
+- Handle regional variations (e.g., "end of business day")
+- Account for timezone differences
+- Default to 30 days if not explicitly stated
+
+Ensure compliance with North American market conventions.</div>
+                    <div class="product-prompt"></div>
+                </div>
+
+                <!-- Exposure -->
+                <div data-element-id="exposure">
+                    <div class="global-prompt">Identify any exposure values mentioned in the document.
+
+Extract:
+- Total insured values (TIV)
+- Per-location exposures
+- Aggregate limits
+- Sub-limits by coverage type
+
+Provide monetary amounts with currency codes.</div>
+                    <div class="team-prompt"></div>
+                    <div class="product-prompt"></div>
+                </div>
+
+                <!-- Premium Description -->
+                <div data-element-id="premium-description">
+                    <div class="global-prompt">Summarize the premium/cost component description.
+
+Include:
+- Coverage type
+- Basis of premium calculation
+- Key rating factors
+- Special conditions or loadings</div>
+                    <div class="team-prompt">Summarize premium description using concise language:
+
+- Use standard terminology for the North American market
+- Highlight any team-specific rating methodologies
+- Note deviations from standard terms
+- Include any broker commentary on pricing</div>
+                    <div class="product-prompt">Focus on property-specific details in the premium description:
+
+- Building characteristics affecting premium
+- Construction type and occupancy
+- Protection class and sprinkler details
+- Natural catastrophe modeling impacts
+- Replacement cost valuation basis</div>
+                </div>
+
+                <!-- Premium Amount -->
+                <div data-element-id="premium-amount">
+                    <div class="global-prompt">Find the total premium amount excluding surplus lines tax and other assessments.
+
+Look for:
+- Base premium
+- Policy premium
+- Premium before taxes
+- Net premium
+
+Exclude any taxes, fees, or surcharges.</div>
+                    <div class="team-prompt"></div>
+                    <div class="product-prompt"></div>
+                </div>
+
+                <!-- Terrorism Coverage -->
+                <div data-element-id="terrorism-coverage">
+                    <div class="global-prompt">Extract terrorism coverage details from the document.
+
+Identify:
+- Whether terrorism coverage is included or excluded
+- TRIA certification status
+- Coverage triggers and definitions
+- Any sub-limits or special conditions
+
+Note any specific terrorism-related endorsements or exclusions.</div>
+                    <div class="team-prompt"></div>
+                    <div class="product-prompt"></div>
+                </div>
+
+                <!-- Surplus Lines Tax -->
+                <div data-element-id="surplus-lines-tax">
+                    <div class="global-prompt">Calculate or extract the surplus lines tax amount.
+
+Find:
+- Surplus lines tax charges
+- Stamping fees
+- State-specific assessments
+- Tax percentages and calculations
+
+Provide the total amount and breakdown by jurisdiction if available.</div>
+                    <div class="team-prompt"></div>
+                    <div class="product-prompt"></div>
+                </div>
+
+                <!-- Broker Comments -->
+                <div data-element-id="broker-comments">
+                    <div class="global-prompt">Extract broker comments or notes from the document.
+
+Include:
+- Market commentary
+- Negotiation notes
+- Special instructions
+- Internal notes or observations
+
+Preserve original formatting and attribution where possible.</div>
+                    <div class="team-prompt">Extract broker comments with special attention to:
+
+- Author name and timestamp
+- References to client conversations
+- Market conditions affecting placement
+- Team-specific notification requirements
+
+Format comments with clear attribution and chronological order.</div>
+                    <div class="product-prompt"></div>
+                </div>
+            </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Global state
+        let activeScopeId = 'global';
+        // Track changes
+        const editedTextareas = new Set();
+        
+        // Element selection and display
+        function selectElement(element, elementId) {
+            // Remove selection from all elements
+            document.querySelectorAll('.element-tree-item.selected').forEach(item => {
+                item.classList.remove('selected');
+            });
+            
+            // Add selection to clicked element
+            element.classList.add('selected');
+            
+            // Get prompt data from hidden store
+            const promptDataDiv = document.querySelector(`#promptData [data-element-id="${elementId}"]`);
+            if (!promptDataDiv) return;
+            
+            const globalPrompt = promptDataDiv.querySelector('.global-prompt').textContent;
+            const teamPrompt = promptDataDiv.querySelector('.team-prompt').textContent;
+            const productPrompt = promptDataDiv.querySelector('.product-prompt').textContent;
+            
+            // Calculate currently applied prompt based on cascade
+            let appliedPrompt = globalPrompt;
+            let source = 'Global';
+            
+            const productSelect = document.getElementById('productSelect');
+            const selectedProduct = productSelect.value;
+            
+            // Check scope visibility for team field
+            const scopeId = activeScopeId;
+            
+            // Cascade logic: Product → Team → Global
+            if (selectedProduct !== '[None]' && productPrompt.trim()) {
+                appliedPrompt = productPrompt;
+                source = selectedProduct;
+            } else if (scopeId !== 'global' && teamPrompt.trim()) {
+                appliedPrompt = teamPrompt;
+                source = scopePaths[scopeId] || 'Team';
+            }
+            
+            // Get the editor panel
+            const editor = document.getElementById('promptEditor');
+            
+            // Hide empty state
+            const emptyState = editor.querySelector('.empty-state');
+            if (emptyState) {
+                emptyState.style.display = 'none';
+            }
+            
+            // Remove any existing content sections (but keep product dropdown)
+            const existingContent = editor.querySelector('.currently-applied-section');
+            const existingPrompts = editor.querySelector('.prompts-edit-section');
+            if (existingContent) existingContent.remove();
+            if (existingPrompts) existingPrompts.remove();
+            
+            // Build visibility flags
+            // Team field shows for any scope other than Global
+            const showTeamField = scopeId !== 'global';
+            const showProductField = selectedProduct !== '[None]';
+            let productLabel = selectedProduct !== '[None]' ? selectedProduct + ' Prompt' : 'Product Prompt';
+            let teamLabel = scopePaths[scopeId] ? scopePaths[scopeId] + ' Prompt' : 'Team Prompt';
+            
+            // Create the content HTML - badges will be updated dynamically, not hardcoded
+            let fieldHTML = `
+                <div class="prompt-edit-field">
+                    <label class="prompt-edit-label" data-badge-field="global">Global Prompt<span class="scope-badge" style="display: none;">Currently Applied</span> (Read-Only)</label>
+                    <textarea class="prompt-edit-textarea read-only" readonly>${globalPrompt}</textarea>
+                </div>`;
+            
+            if (showTeamField) {
+                fieldHTML += `
+                    <div class="prompt-edit-field" id="teamPromptField">
+                        <label class="prompt-edit-label" data-badge-field="team">${teamLabel}<span class="scope-badge" style="display: none;">Currently Applied</span> (Editable)</label>
+                        <textarea class="prompt-edit-textarea editable" 
+                                  data-type="team" 
+                                  data-element="${elementId}" 
+                                  oninput="trackChange(this); updateCurrentlyApplied('${elementId}')">${teamPrompt}</textarea>
+                    </div>`;
+            }
+            
+            if (showProductField) {
+                fieldHTML += `
+                    <div class="prompt-edit-field" id="productPromptField">
+                        <label class="prompt-edit-label" data-badge-field="product">${productLabel}<span class="scope-badge" style="display: none;">Currently Applied</span> (Editable)</label>
+                        <textarea class="prompt-edit-textarea editable" 
+                                  data-type="product" 
+                                  data-element="${elementId}"
+                                  oninput="trackChange(this); updateCurrentlyApplied('${elementId}')">${productPrompt}</textarea>
+                    </div>`;
+            }
+            
+            const contentHTML = `<div class="prompts-edit-section">${fieldHTML}</div>`;
+            
+            // Append the content after the product dropdown
+            editor.insertAdjacentHTML('beforeend', contentHTML);
+            
+            // Update badge visibility immediately after rendering
+            updateCurrentlyApplied(elementId);
+        }
+        
+        // Toggle element tree nodes
+        function toggleElementNode(element) {
+            const toggle = element.querySelector('.tree-toggle');
+            const children = element.nextElementSibling;
+            
+            if (toggle.textContent === '▼') {
+                toggle.textContent = '▶';
+                children.classList.add('hidden');
+            } else {
+                toggle.textContent = '▼';
+                children.classList.remove('hidden');
+            }
+        }
+        
+        // Update currently applied prompt display after editing
+        function updateCurrentlyApplied(elementId) {
+            const promptDataDiv = document.querySelector(`#promptData [data-element-id="${elementId}"]`);
+            if (!promptDataDiv) return;
+            
+            // Get current textarea values from editor
+            const globalPrompt = document.querySelector(`[data-element="${elementId}"][readonly]`)?.value || promptDataDiv.querySelector('.global-prompt').textContent;
+            const teamTextarea = document.querySelector(`[data-element="${elementId}"][data-type="team"]`);
+            const productTextarea = document.querySelector(`[data-element="${elementId}"][data-type="product"]`);
+            
+            const teamPrompt = teamTextarea ? teamTextarea.value : '';
+            const productPrompt = productTextarea ? productTextarea.value : '';
+            
+            // Update hidden data store
+            if (teamTextarea) promptDataDiv.querySelector('.team-prompt').textContent = teamPrompt;
+            if (productTextarea) promptDataDiv.querySelector('.product-prompt').textContent = productPrompt;
+            
+            // Calculate currently applied
+            let appliedPrompt = globalPrompt;
+            let source = 'Global';
+            
+            const productSelect = document.getElementById('productSelect');
+            const selectedProduct = productSelect.value;
+            
+            // Cascade logic
+            if (selectedProduct !== '[None]' && productPrompt.trim()) {
+                appliedPrompt = productPrompt;
+                source = 'product';
+            } else if (activeScopeId !== 'global' && teamPrompt.trim()) {
+                appliedPrompt = teamPrompt;
+                source = 'team';
+            }
+            
+            // Update badge visibility dynamically
+            const globalBadge = document.querySelector('[data-badge-field="global"] .scope-badge');
+            const teamBadge = document.querySelector('[data-badge-field="team"] .scope-badge');
+            const productBadge = document.querySelector('[data-badge-field="product"] .scope-badge');
+            
+            if (globalBadge) globalBadge.style.display = source === 'Global' ? 'inline-block' : 'none';
+            if (teamBadge) teamBadge.style.display = source === 'team' ? 'inline-block' : 'none';
+            if (productBadge) productBadge.style.display = source === 'product' ? 'inline-block' : 'none';
+        }
+        
+        // Product selection change handler
+        document.getElementById('productSelect').addEventListener('change', function() {
+            // If an element is selected, re-render it to update product field visibility
+            const selectedElement = document.querySelector('.element-tree-item.selected');
+            if (selectedElement) {
+                const elementId = selectedElement.getAttribute('data-element-id');
+                selectElement(selectedElement, elementId);
+            }
+        });
+        
+        // Track changes to textareas
+        function trackChange(textarea) {
+            textarea.classList.add('has-changes');
+            editedTextareas.add(textarea);
+            updateChangesBanner();
+            updateTabCounter();
+        }
+        
+        function updateChangesBanner() {
+            const count = editedTextareas.size;
+            const banner = document.getElementById('changesBanner');
+            const countElement = document.getElementById('changesCount');
+            const plural = document.getElementById('changeS');
+            
+            if (count > 0) {
+                banner.classList.remove('hidden');
+                countElement.textContent = count;
+                plural.textContent = count === 1 ? '' : 's';
+            } else {
+                banner.classList.add('hidden');
+            }
+        }
+        
+        function updateTabCounter() {
+            const count = editedTextareas.size;
+            const counter = document.getElementById('tabCounter');
+            
+            if (count > 0) {
+                counter.style.display = 'inline';
+                counter.textContent = '(' + count + ')';
+            } else {
+                counter.style.display = 'none';
+            }
+        }
+        
+        function discardChanges() {
+            if (confirm('Are you sure you want to discard all changes?')) {
+                // Reload prompt data from hidden store
+                editedTextareas.forEach(textarea => {
+                    const elementId = textarea.getAttribute('data-element');
+                    const type = textarea.getAttribute('data-type');
+                    const promptDataDiv = document.querySelector(`#promptData [data-element-id="${elementId}"]`);
+                    
+                    if (promptDataDiv) {
+                        const originalValue = promptDataDiv.querySelector(`.${type}-prompt`).textContent;
+                        textarea.value = originalValue;
+                    }
+                    
+                    textarea.classList.remove('has-changes');
+                });
+                
+                editedTextareas.clear();
+                updateChangesBanner();
+                updateTabCounter();
+                
+                // Refresh display if element is selected
+                const selectedElement = document.querySelector('.element-tree-item.selected');
+                if (selectedElement) {
+                    const elementId = selectedElement.getAttribute('data-element-id');
+                    updateCurrentlyApplied(elementId);
+                }
+            }
+        }
+        
+        function goToReview() {
+            sessionStorage.setItem('pendingChangesCount', editedTextareas.size);
+            window.location.href = 'DocumentIngestion-PromptManagement-PendingChanges-MVP-v2.html';
+        }
+        
+        // Scope tree functions
+        function toggleNode(element) {
+            const toggle = element.querySelector('.tree-toggle');
+            const children = element.nextElementSibling;
+            
+            if (toggle.classList.contains('leaf')) return;
+            
+            if (toggle.textContent === '▼') {
+                toggle.textContent = '▶';
+                children.classList.add('hidden');
+            } else {
+                toggle.textContent = '▼';
+                children.classList.remove('hidden');
+            }
+        }
+        
+        // Scope hierarchy mapping
+        const scopePaths = {
+            'global': 'Global',
+            'na': 'North America',
+            'na-mm': 'North America > Middle Market',
+            'na-lc': 'North America > L&C',
+            'crb': 'CRB',
+            'crb-gb': 'CRB > GB',
+            'spain': 'Spain',
+            'spain-madrid': 'Spain > Madrid'
+        };
+        
+        function selectScope(element, scopeId) {
+            // Store the active scope ID globally
+            activeScopeId = scopeId;
+            
+            // Remove active class from all items
+            document.querySelectorAll('.tree-node-item.active').forEach(item => {
+                item.classList.remove('active');
+            });
+            // Add active class to selected item
+            element.classList.add('active');
+            
+            // Show/hide product dropdown based on scope selection
+            const filterGroup = document.querySelector('.filter-group');
+            const productSelect = document.getElementById('productSelect');
+            if (filterGroup) {
+                if (scopeId === 'global') {
+                    filterGroup.classList.remove('visible');
+                    // Reset product selection when going to Global scope
+                    if (productSelect) {
+                        productSelect.value = '[None]';
+                    }
+                } else {
+                    filterGroup.classList.add('visible');
+                }
+            }
+            
+            // If an element is selected, re-render it to update team field visibility
+            const selectedElement = document.querySelector('.element-tree-item.selected');
+            if (selectedElement) {
+                const elementId = selectedElement.getAttribute('data-element-id');
+                selectElement(selectedElement, elementId);
+            }
+        }
+        
+        // Initialize on page load
+        function initializePageLoad() {
+            // Set Global as active by default
+            activeScopeId = 'global';
+            const globalNode = document.querySelector('.tree-node-item');
+            if (globalNode) {
+                globalNode.classList.add('active');
+            }
+        }
+        
+        // Run initialization when DOM is ready
+        if (document.readyState === 'loading') {
+            document.addEventListener('DOMContentLoaded', initializePageLoad);
+        } else {
+            initializePageLoad();
+        }
+    </script>
+</body>
+</html>
