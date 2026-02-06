@@ -1,0 +1,666 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Document Ingestion Prompt Management - Scope-Based View</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Arial, sans-serif;
+            font-size: 13px;
+            background-color: #f5f5f5;
+        }
+
+        .header {
+            background-color: #fff;
+            border-bottom: 1px solid #ccc;
+            padding: 10px 20px;
+            text-align: center;
+            font-weight: bold;
+            font-size: 14px;
+        }
+
+        .tabs {
+            background-color: #fff;
+            border-bottom: 1px solid #ccc;
+            padding: 0 20px;
+            display: flex;
+            gap: 10px;
+            flex-shrink: 0;
+        }
+
+        .tab {
+            padding: 10px 20px;
+            cursor: pointer;
+            border-bottom: 2px solid transparent;
+            text-decoration: none;
+            color: #333;
+        }
+
+        .tab.active {
+            color: #0066cc;
+            border-bottom-color: #0066cc;
+            font-weight: bold;
+        }
+
+        .container {
+            display: flex;
+            height: calc(100vh - 50px);
+            background-color: #fff;
+        }
+
+        .nav-panel {
+            width: 180px;
+            background-color: #f9f9f9;
+            border-right: 1px solid #ccc;
+            padding: 10px;
+            overflow-y: auto;
+        }
+
+        .right-panel {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+        }
+
+        .nav-header {
+            font-weight: bold;
+            padding: 8px;
+            margin-bottom: 10px;
+            border-bottom: 1px solid #ccc;
+        }
+
+        .nav-item {
+            padding: 8px;
+            cursor: pointer;
+            border-radius: 3px;
+            margin-bottom: 2px;
+        }
+
+        .nav-item:hover {
+            background-color: #e0e0e0;
+        }
+
+        .nav-item.active {
+            background-color: #0066cc;
+            color: white;
+            font-weight: bold;
+        }
+
+        .scope-panel {
+            display: none;
+        }
+
+        .filter-bar {
+            padding: 12px 15px;
+            background-color: #f9f9f9;
+            border-bottom: 1px solid #ddd;
+            display: flex;
+            gap: 12px;
+            align-items: center;
+            flex-wrap: wrap;
+        }
+
+        .filter-group {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+
+        .filter-group-label {
+            font-weight: 600;
+            font-size: 12px;
+            color: #333;
+        }
+
+        .filter-group-select {
+            padding: 6px 10px;
+            border: 1px solid #ccc;
+            border-radius: 3px;
+            font-size: 12px;
+            min-width: 110px;
+            background-color: #fff;
+        }
+
+        .grid-panel {
+            flex: 1;
+            overflow: auto;
+            padding: 10px;
+        }
+
+        .button-toolbar {
+            padding: 10px;
+            border-bottom: 1px solid #ddd;
+            background-color: #f9f9f9;
+            display: flex;
+            gap: 10px;
+        }
+
+        .toolbar-button {
+            padding: 8px 16px;
+            border: 1px solid #ccc;
+            background-color: #fff;
+            cursor: pointer;
+            border-radius: 3px;
+        }
+
+        .toolbar-button:hover {
+            background-color: #f0f0f0;
+        }
+
+        .toolbar-button.primary {
+            background-color: #0066cc;
+            color: white;
+            border-color: #0066cc;
+        }
+
+        .toolbar-button.primary:hover {
+            background-color: #0052a3;
+        }
+
+        .toolbar-select {
+            padding: 8px 16px;
+            border: 1px solid #ccc;
+            background-color: #fff;
+            cursor: pointer;
+            border-radius: 3px;
+            min-width: 150px;
+        }
+
+        .grid-table {
+            width: 100%;
+            border-collapse: collapse;
+            background-color: #fff;
+        }
+
+        .grid-table th {
+            background-color: #e0e0e0;
+            padding: 10px 8px;
+            text-align: left;
+            border: 1px solid #ccc;
+            font-weight: bold;
+            position: sticky;
+            top: 0;
+            z-index: 10;
+        }
+
+        .grid-table td {
+            padding: 8px;
+            border: 1px solid #ddd;
+            vertical-align: top;
+        }
+
+        .grid-table tr:hover {
+            background-color: #f9f9f9;
+        }
+
+        .element-row {
+            cursor: pointer;
+        }
+
+        .element-row.parent {
+            font-weight: bold;
+        }
+
+        .element-content {
+            display: block;
+        }
+
+        .element-content.level-1 {
+            margin-left: 20px;
+        }
+
+        .element-content.level-2 {
+            margin-left: 40px;
+        }
+
+        .expand-icon {
+            display: inline-block;
+            width: 16px;
+            margin-right: 5px;
+            font-family: monospace;
+        }
+
+        .editable {
+            background-color: #fffdf0;
+            min-height: 20px;
+            padding: 4px;
+            border-radius: 2px;
+        }
+
+        .editable:hover {
+            background-color: #fff9d0;
+            outline: 1px solid #ccc;
+        }
+
+        .read-only {
+            background-color: #f5f5f5;
+            color: #666;
+        }
+
+        .scope-badge {
+            display: inline-block;
+            padding: 2px 6px;
+            background-color: #e0e0e0;
+            border-radius: 3px;
+            font-size: 11px;
+            margin: 1px;
+        }
+
+        .changes-banner {
+            background-color: #fff8e1;
+            border-bottom: 1px solid #ffc107;
+            padding: 12px 15px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            font-size: 13px;
+            gap: 15px;
+        }
+
+        .changes-banner.hidden {
+            display: none;
+        }
+
+        .changes-count {
+            font-weight: 600;
+            color: #333;
+        }
+
+        .banner-actions {
+            display: flex;
+            gap: 10px;
+        }
+
+        .banner-button {
+            padding: 6px 14px;
+            border: 1px solid #ffc107;
+            background-color: transparent;
+            color: #333;
+            cursor: pointer;
+            border-radius: 3px;
+            font-size: 12px;
+            font-weight: 600;
+        }
+
+        .banner-button:hover {
+            background-color: #ffc107;
+        }
+
+        .banner-button.primary {
+            background-color: #0066cc;
+            color: white;
+            border-color: #0066cc;
+        }
+
+        .banner-button.primary:hover {
+            background-color: #0052a3;
+        }
+
+        .edited-cell {
+            background-color: #fffdf0 !important;
+            border-left: 3px solid #ffc107;
+        }
+
+        .has-changes-badge::after {
+            content: '●';
+            color: #ff9800;
+            margin-left: 6px;
+            font-size: 8px;
+        }
+
+        .product-column {
+            display: none;
+        }
+
+        .product-column.visible {
+            display: table-cell;
+        }
+
+        .hidden {
+            display: none;
+        }
+    </style>
+</head>
+<body>
+    <div class="header">Document Ingestion Prompt Management - Scope-Based View</div>
+    
+    <div class="container">
+        <div class="nav-panel">
+            <div class="nav-header">☰ WTW Willis</div>
+            <div class="nav-item">Home</div>
+            <div class="nav-item">All Placements</div>
+            <div class="nav-item">Templates</div>
+            <div class="nav-item">Document Ingestion</div>
+            <div class="nav-item active">→ Prompt Management</div>
+            <div class="nav-item">Service Hub</div>
+            <div class="nav-item">Risk Hub</div>
+            <div class="nav-item">Quality Index Buyers</div>
+            <div class="nav-item">Training Materials</div>
+        </div>
+
+        <div class="right-panel">
+            <div class="tabs">
+                <a href="DocumentIngestion-PromptManagement-ScopeView.html" class="tab active">Edit Prompts</a>
+                <a href="DocumentIngestion-PromptManagement-UserElementsView.html" class="tab">Elements to Scopes</a>
+                <a href="DocumentIngestion-PromptManagement-PendingChanges.html" class="tab">Review and Publish <span id="tabCounter" style="display: none;">(0)</span></a>
+            </div>
+
+            <div class="scope-panel">
+            <div class="scope-section">
+                <label class="scope-label">Team</label>
+                <select class="scope-select">
+                    <option>North America</option>
+                    <option>UK</option>
+                    <option>APAC</option>
+                </select>
+            </div>
+
+            <div class="scope-section">
+                <label class="scope-label">Broking Segment</label>
+                <select class="scope-select">
+                    <option>Global Line of Business</option>
+                    <option>Commercial</option>
+                    <option>Specialty</option>
+                </select>
+            </div>
+
+            <div class="scope-section">
+                <label class="scope-label">Document Type</label>
+                <select class="scope-select">
+                    <option>Quote</option>
+                    <option>Binder</option>
+                    <option>Policy</option>
+                </select>
+            </div>
+
+            <button class="scope-button">Apply</button>
+            <button class="scope-button">Clear All</button>
+        </div>
+
+        <div class="grid-panel">
+            <div class="filter-bar">
+                <div class="filter-group">
+                    <label class="filter-group-label">Team:</label>
+                    <select class="filter-group-select">
+                        <option>North America</option>
+                        <option>UK</option>
+                        <option>APAC</option>
+                    </select>
+                </div>
+
+                <div class="filter-group">
+                    <label class="filter-group-label">Broking Segment:</label>
+                    <select class="filter-group-select">
+                        <option>Global Line of Business</option>
+                        <option>Commercial</option>
+                        <option>Specialty</option>
+                    </select>
+                </div>
+
+                <div class="filter-group">
+                    <label class="filter-group-label">Document Type:</label>
+                    <select class="filter-group-select">
+                        <option>Quote</option>
+                        <option>Binder</option>
+                        <option>Policy</option>
+                    </select>
+                </div>
+
+                <div class="filter-group">
+                    <label class="filter-group-label">Product:</label>
+                    <select class="filter-group-select" id="productSelect">
+                        <option>[None]</option>
+                        <option>Cyber</option>
+                        <option>Property</option>
+                        <option>Casualty</option>
+                        <option>D&O</option>
+                        <option>E&O</option>
+                    </select>
+                </div>
+            </div>
+
+            <div class="changes-banner hidden" id="changesBanner">
+                <div class="changes-count">You have <span id="changesCount">0</span> unpublished change<span id="changeS">s</span></div>
+                <div class="banner-actions">
+                    <button class="banner-button" onclick="discardChanges()">Discard</button>
+                    <button class="banner-button primary" onclick="goToReview()">Review & Publish</button>
+                </div>
+            </div>
+
+            <table class="grid-table">
+                <thead>
+                    <tr>
+                        <th style="width: 40px;"><input type="checkbox" id="selectAll"></th>
+                        <th style="width: 250px;">Element</th>
+                        <th style="width: 150px;">Currently Applied Scopes</th>
+                        <th style="width: 300px;">Global Prompt (Read-Only)</th>
+                        <th style="width: 300px;">Team Prompt (Editable)</th>
+                        <th style="width: 300px;" id="productHeader" class="product-column">Product Prompt (Editable)</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr class="element-row">
+                        <td><input type="checkbox" class="row-checkbox"></td>
+                        <td><span class="expand-icon"></span>Response Type</td>
+                        <td><span class="scope-badge">Product</span></td>
+                        <td class="read-only">Extract response type from...</td>
+                        <td class="editable"></td>
+                        <td class="product-column editable">For cyber risks, identify...</td>
+                    </tr>
+                    
+                    <tr class="element-row child">
+                        <td><input type="checkbox" class="row-checkbox"></td>
+                        <td><span class="expand-icon"></span>Market Securities</td>
+                        <td><span class="scope-badge">Global</span></td>
+                        <td class="read-only">List all securities mentioned...</td>
+                        <td class="editable"></td>
+                        <td class="product-column editable"></td>
+                    </tr>
+
+                    <tr class="element-row child">
+                        <td><input type="checkbox" class="row-checkbox"></td>
+                        <td><span class="expand-icon"></span>Quote Expiry Date</td>
+                        <td><span class="scope-badge">Team</span></td>
+                        <td class="read-only">Find the date...</td>
+                        <td class="editable">For North America, use MM/DD/YYYY...</td>
+                        <td class="product-column editable"></td>
+                    </tr>
+
+                    <tr class="element-row child">
+                        <td><input type="checkbox" class="row-checkbox"></td>
+                        <td><span class="expand-icon"></span>Exposure</td>
+                        <td><span class="scope-badge">Global</span></td>
+                        <td class="read-only">Identify any exposure...</td>
+                        <td class="editable"></td>
+                        <td class="product-column editable"></td>
+                    </tr>
+
+                    <tr class="element-row parent" onclick="toggleChildren(this, 'premium-children')">
+                        <td><input type="checkbox" class="row-checkbox"></td>
+                        <td><span class="expand-icon">▼</span><strong>Premium/Cost Component</strong></td>
+                        <td></td>
+                        <td></td>
+                        <td></td>
+                        <td class="product-column"></td>
+                    </tr>
+
+                    <tr class="element-row child-2 premium-children">
+                        <td><input type="checkbox" class="row-checkbox"></td>
+                        <td><span class="element-content level-2"><span class="expand-icon"></span>Description</span></td>
+                        <td><span class="scope-badge">Team</span><span class="scope-badge">Product</span></td>
+                        <td class="read-only">Summarize...</td>
+                        <td class="editable">Use concise language...</td>
+                        <td class="product-column editable">Focus on property details...</td>
+                    </tr>
+
+                    <tr class="element-row child-2 premium-children">
+                        <td><input type="checkbox" class="row-checkbox"></td>
+                        <td><span class="element-content level-2"><span class="expand-icon"></span>Premium (Excl. Surplus Lines Tax, ...)</span></td>
+                        <td><span class="scope-badge">Global</span></td>
+                        <td class="read-only">Find total premium...</td>
+                        <td class="editable"></td>
+                        <td class="product-column editable"></td>
+                    </tr>
+
+                    <tr class="element-row child-2 premium-children">
+                        <td><input type="checkbox" class="row-checkbox"></td>
+                        <td><span class="element-content level-2"><span class="expand-icon"></span>Terrorism Coverage</span></td>
+                        <td><span class="scope-badge">Global</span></td>
+                        <td class="read-only">Extract terrorism coverage...</td>
+                        <td class="editable"></td>
+                        <td class="product-column editable"></td>
+                    </tr>
+
+                    <tr class="element-row child-2 premium-children">
+                        <td><input type="checkbox" class="row-checkbox"></td>
+                        <td><span class="element-content level-2"><span class="expand-icon"></span>TRIA Premium</span></td>
+                        <td><span class="scope-badge">Global</span></td>
+                        <td class="read-only">Identify TRIA premium amount...</td>
+                        <td class="editable"></td>
+                        <td class="product-column editable"></td>
+                    </tr>
+
+                    <tr class="element-row child-2 premium-children">
+                        <td><input type="checkbox" class="row-checkbox"></td>
+                        <td><span class="element-content level-2"><span class="expand-icon"></span>Surplus Lines Tax</span></td>
+                        <td><span class="scope-badge">Global</span></td>
+                        <td class="read-only">Calculate surplus lines tax...</td>
+                        <td class="editable"></td>
+                        <td class="product-column editable"></td>
+                    </tr>
+
+                    <tr class="element-row child">
+                        <td><input type="checkbox" class="row-checkbox"></td>
+                        <td><span class="expand-icon"></span>Broker Comments</td>
+                        <td><span class="scope-badge">Team</span></td>
+                        <td class="read-only">Extract broker notes...</td>
+                        <td class="editable">Include timestamp and author...</td>
+                        <td class="product-column editable"></td>
+                    </tr>
+                </tbody>
+            </table>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        function toggleChildren(row, childClass) {
+            const icon = row.querySelector('.expand-icon');
+            const children = document.querySelectorAll('.' + childClass);
+            
+            if (icon.textContent === '▼') {
+                icon.textContent = '▶';
+                children.forEach(child => child.classList.add('hidden'));
+            } else {
+                icon.textContent = '▼';
+                children.forEach(child => child.classList.remove('hidden'));
+            }
+        }
+
+        // Make editable cells actually editable
+        document.querySelectorAll('.editable:not(.read-only)').forEach(cell => {
+            cell.contentEditable = true;
+            cell.addEventListener('focus', function() {
+                this.style.backgroundColor = '#fff';
+                this.style.outline = '2px solid #0066cc';
+            });
+            cell.addEventListener('blur', function() {
+                this.style.backgroundColor = '#fffdf0';
+                this.style.outline = 'none';
+                trackChange(this);
+            });
+            cell.addEventListener('input', function() {
+                trackChange(this);
+            });
+        });
+
+        // Track changes
+        const editedCells = new Set();
+        
+        function trackChange(cell) {
+            cell.classList.add('edited-cell');
+            editedCells.add(cell);
+            updateChangesBanner();
+            updateTabCounter();
+        }
+        
+        function updateChangesBanner() {
+            const count = editedCells.size;
+            const banner = document.getElementById('changesBanner');
+            const countElement = document.getElementById('changesCount');
+            const plural = document.getElementById('changeS');
+            
+            if (count > 0) {
+                banner.classList.remove('hidden');
+                countElement.textContent = count;
+                plural.textContent = count === 1 ? '' : 's';
+            } else {
+                banner.classList.add('hidden');
+            }
+        }
+        
+        function updateTabCounter() {
+            const count = editedCells.size;
+            const counter = document.getElementById('tabCounter');
+            
+            if (count > 0) {
+                counter.style.display = 'inline';
+                counter.textContent = '(' + count + ')';
+            } else {
+                counter.style.display = 'none';
+            }
+        }
+        
+        function discardChanges() {
+            if (confirm('Are you sure you want to discard all changes?')) {
+                editedCells.forEach(cell => {
+                    cell.classList.remove('edited-cell');
+                    cell.textContent = '';
+                });
+                editedCells.clear();
+                updateChangesBanner();
+                updateTabCounter();
+            }
+        }
+        
+        function goToReview() {
+            // Store the count in sessionStorage so Pending Changes can access it
+            sessionStorage.setItem('pendingChangesCount', editedCells.size);
+            window.location.href = 'DocumentIngestion-PromptManagement-PendingChanges.html';
+        }
+
+        // Select all checkbox functionality
+        document.getElementById('selectAll').addEventListener('change', function() {
+            const checkboxes = document.querySelectorAll('.row-checkbox');
+            checkboxes.forEach(cb => cb.checked = this.checked);
+        });
+
+        // Update Product column header when dropdown changes
+        document.getElementById('productSelect').addEventListener('change', function() {
+            const productHeader = document.getElementById('productHeader');
+            const productCells = document.querySelectorAll('.product-column');
+            const selectedProduct = this.value;
+            
+            if (selectedProduct === '[None]') {
+                productHeader.textContent = 'Product Prompt (Editable)';
+                // Hide product column
+                productHeader.classList.remove('visible');
+                productCells.forEach(cell => cell.classList.remove('visible'));
+            } else {
+                productHeader.textContent = selectedProduct + ' Prompt (Editable)';
+                // Show product column
+                productHeader.classList.add('visible');
+                productCells.forEach(cell => cell.classList.add('visible'));
+            }
+        });
+    </script>
+</body>
+</html>

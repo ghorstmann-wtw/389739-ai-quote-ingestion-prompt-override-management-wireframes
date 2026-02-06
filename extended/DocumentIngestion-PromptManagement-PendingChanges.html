@@ -1,0 +1,794 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Document Ingestion Prompt Management - Pending Changes</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Arial, sans-serif;
+            font-size: 13px;
+            background-color: #f5f5f5;
+        }
+
+        .header {
+            background-color: #fff;
+            border-bottom: 1px solid #ccc;
+            padding: 10px 20px;
+            text-align: center;
+            font-weight: bold;
+            font-size: 14px;
+        }
+
+        .tabs {
+            background-color: #fff;
+            border-bottom: 1px solid #ccc;
+            padding: 0 20px;
+            display: flex;
+            gap: 10px;
+        }
+
+        .tab {
+            padding: 10px 20px;
+            cursor: pointer;
+            border-bottom: 2px solid transparent;
+            text-decoration: none;
+            color: #333;
+        }
+
+        .tab.active {
+            color: #0066cc;
+            border-bottom-color: #0066cc;
+            font-weight: bold;
+        }
+
+        .container {
+            display: flex;
+            height: calc(100vh - 90px);
+            background-color: #fff;
+        }
+
+        .nav-panel {
+            width: 180px;
+            background-color: #f9f9f9;
+            border-right: 1px solid #ccc;
+            padding: 10px;
+            overflow-y: auto;
+        }
+
+        .nav-header {
+            font-weight: bold;
+            padding: 8px;
+            margin-bottom: 10px;
+            border-bottom: 1px solid #ccc;
+        }
+
+        .nav-item {
+            padding: 8px;
+            cursor: pointer;
+            border-radius: 3px;
+            margin-bottom: 2px;
+        }
+
+        .nav-item:hover {
+            background-color: #e0e0e0;
+        }
+
+        .nav-item.active {
+            background-color: #0066cc;
+            color: white;
+            font-weight: bold;
+        }
+
+        .main-panel {
+            flex: 1;
+            overflow: auto;
+            padding: 10px;
+        }
+
+        .summary-bar {
+            padding: 15px;
+            background-color: #f9f9f9;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            margin-bottom: 15px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .summary-info {
+            font-size: 14px;
+            font-weight: bold;
+        }
+
+        .button-toolbar {
+            padding: 10px;
+            border-bottom: 1px solid #ddd;
+            background-color: #f9f9f9;
+            display: flex;
+            gap: 10px;
+            align-items: center;
+        }
+
+        .toolbar-button {
+            padding: 8px 16px;
+            border: 1px solid #ccc;
+            background-color: #fff;
+            cursor: pointer;
+            border-radius: 3px;
+        }
+
+        .toolbar-button:hover {
+            background-color: #f0f0f0;
+        }
+
+        .toolbar-button.primary {
+            background-color: #0066cc;
+            color: white;
+            border-color: #0066cc;
+        }
+
+        .toolbar-button.primary:hover {
+            background-color: #0052a3;
+        }
+
+        .toolbar-button:disabled {
+            background-color: #e0e0e0;
+            color: #999;
+            cursor: not-allowed;
+        }
+
+        .changes-table {
+            width: 100%;
+            border-collapse: collapse;
+            background-color: #fff;
+        }
+
+        .changes-table th {
+            background-color: #e0e0e0;
+            padding: 10px 8px;
+            text-align: left;
+            border: 1px solid #ccc;
+            font-weight: bold;
+            position: sticky;
+            top: 0;
+            z-index: 10;
+        }
+
+        .changes-table td {
+            padding: 8px;
+            border: 1px solid #ddd;
+            vertical-align: top;
+        }
+
+        .editable-value {
+            background-color: #fffdf0;
+            min-height: 20px;
+            padding: 4px;
+            border-radius: 2px;
+            cursor: text;
+        }
+
+        .editable-value:hover {
+            background-color: #fff9d0;
+            outline: 1px solid #ccc;
+        }
+
+        .editable-value:focus {
+            background-color: #fff;
+            outline: 2px solid #0066cc;
+        }
+
+        .read-only-value {
+            background-color: #f5f5f5;
+            color: #666;
+        }
+
+        .previous-value {
+            color: #999;
+        }
+
+        .source-badge {
+            display: inline-block;
+            padding: 2px 8px;
+            border-radius: 3px;
+            font-size: 11px;
+            margin-left: 8px;
+            font-weight: normal;
+            color: white;
+        }
+
+        .source-badge.global {
+            background-color: #6c757d;
+        }
+
+        .source-badge.team {
+            background-color: #0066cc;
+        }
+
+        .source-badge.product {
+            background-color: #ff9933;
+        }
+
+        .changes-table tr:hover {
+            background-color: #f9f9f9;
+        }
+
+        .hierarchy-row {
+            cursor: pointer;
+        }
+
+        .hierarchy-row.team {
+            background-color: #e6f2ff;
+            font-weight: bold;
+        }
+
+        .hierarchy-row.subteam {
+            background-color: #f0f8ff;
+            font-weight: bold;
+        }
+
+        .hierarchy-row.product {
+            background-color: #fff5e6;
+            font-weight: bold;
+        }
+
+        .hierarchy-row.element {
+            background-color: #fff;
+        }
+
+        .scope-name {
+            display: block;
+        }
+
+        .scope-name.level-0 {
+            margin-left: 0;
+        }
+
+        .scope-name.level-1 {
+            margin-left: 20px;
+        }
+
+        .scope-name.level-2 {
+            margin-left: 40px;
+        }
+
+        .scope-name.level-3 {
+            margin-left: 60px;
+        }
+
+        .level-badge {
+            display: inline-block;
+            padding: 2px 8px;
+            border-radius: 3px;
+            font-size: 11px;
+            margin-left: 8px;
+            font-weight: normal;
+        }
+
+        .level-badge.team {
+            background-color: #0066cc;
+            color: white;
+        }
+
+        .level-badge.subteam {
+            background-color: #6c757d;
+            color: white;
+        }
+
+        .level-badge.product {
+            background-color: #ff9933;
+            color: white;
+        }
+
+        .change-badge {
+            display: inline-block;
+            padding: 2px 6px;
+            background-color: #d4edda;
+            border-radius: 3px;
+            font-size: 11px;
+            color: #155724;
+        }
+
+        .filter-bar {
+            padding: 12px 15px;
+            background-color: #f9f9f9;
+            border-bottom: 1px solid #ddd;
+            display: flex;
+            gap: 12px;
+            align-items: center;
+            flex-wrap: wrap;
+        }
+
+        .filter-group {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+
+        .filter-group-label {
+            font-weight: 600;
+            font-size: 12px;
+            color: #333;
+        }
+
+        .filter-group-select {
+            padding: 6px 10px;
+            border: 1px solid #ccc;
+            border-radius: 3px;
+            font-size: 12px;
+            min-width: 110px;
+            background-color: #fff;
+        }
+
+        .quick-filters {
+            padding: 10px 15px;
+            background-color: #f5f5f5;
+            border-bottom: 1px solid #ddd;
+            display: flex;
+            gap: 15px;
+            align-items: center;
+        }
+
+        .quick-filters-label {
+            font-weight: 600;
+            font-size: 12px;
+            color: #333;
+            margin-right: 5px;
+        }
+
+        .quick-filter-button {
+            padding: 5px 12px;
+            border: 1px solid #ccc;
+            background-color: #fff;
+            cursor: pointer;
+            border-radius: 3px;
+            font-size: 12px;
+            color: #333;
+        }
+
+        .quick-filter-button.active {
+            background-color: #0066cc;
+            color: white;
+            border-color: #0066cc;
+        }
+
+        .quick-filter-button:hover {
+            background-color: #f0f0f0;
+        }
+
+        .quick-filter-button.active:hover {
+            background-color: #0052a3;
+        }
+
+        .right-panel {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+        }
+
+        .grid-panel {
+            flex: 1;
+            overflow: auto;
+            padding: 10px;
+        }        .change-badge.override {
+            background-color: #fff3cd;
+            color: #856404;
+        }
+
+        .change-badge.new {
+            background-color: #d1ecf1;
+            color: #0c5460;
+        }
+
+        .change-detail {
+            font-size: 12px;
+        }
+
+        .old-value {
+            color: #999;
+            text-decoration: line-through;
+        }
+
+        .new-value {
+            color: #28a745;
+            font-weight: bold;
+        }
+
+        .arrow {
+            color: #666;
+            margin: 0 8px;
+        }
+
+        .hidden {
+            display: none;
+        }
+
+        .no-changes {
+            padding: 40px;
+            text-align: center;
+            color: #999;
+            font-size: 14px;
+        }
+    </style>
+</head>
+<body>
+    <div class="header">Document Ingestion Prompt Management - Pending Changes</div>
+    
+    <div class="container">
+        <div class="nav-panel">
+            <div class="nav-header">☰ WTW Willis</div>
+            <div class="nav-item">Home</div>
+            <div class="nav-item">All Placements</div>
+            <div class="nav-item">Templates</div>
+            <div class="nav-item">Document Ingestion</div>
+            <div class="nav-item active">→ Prompt Management</div>
+            <div class="nav-item">Service Hub</div>
+            <div class="nav-item">Risk Hub</div>
+            <div class="nav-item">Quality Index Buyers</div>
+            <div class="nav-item">Training Materials</div>
+        </div>
+
+        <div class="right-panel">
+            <div class="tabs">
+                <a href="DocumentIngestion-PromptManagement-ScopeView.html" class="tab">Edit Prompts</a>
+                <a href="DocumentIngestion-PromptManagement-UserElementsView.html" class="tab">Elements to Scopes</a>
+                <a href="DocumentIngestion-PromptManagement-PendingChanges.html" class="tab active">Review and Publish <span id="tabCounter" style="display: none;">(0)</span></a>
+            </div>
+
+            <div class="grid-panel">
+                <div class="filter-bar">
+                    <div class="filter-group">
+                        <label class="filter-group-label">Team:</label>
+                        <select class="filter-group-select" id="filterTeam">
+                            <option value="">All Teams</option>
+                            <option value="na">North America</option>
+                            <option value="uk">UK</option>
+                            <option value="apac">APAC</option>
+                        </select>
+                    </div>
+
+                    <div class="filter-group">
+                        <label class="filter-group-label">Segment:</label>
+                        <select class="filter-group-select" id="filterSegment">
+                            <option value="">All Segments</option>
+                            <option value="mm">Middle Market</option>
+                            <option value="lc">L&C</option>
+                            <option value="specialty">Specialty</option>
+                        </select>
+                    </div>
+
+                    <div class="filter-group">
+                        <label class="filter-group-label">Product:</label>
+                        <select class="filter-group-select" id="filterProduct">
+                            <option value="">All Products</option>
+                            <option value="construction">Construction</option>
+                            <option value="property">Property</option>
+                            <option value="cyber">Cyber</option>
+                            <option value="do">D&O</option>
+                        </select>
+                    </div>
+                </div>
+
+                <div class="quick-filters">
+                    <span class="quick-filters-label">Quick Filters:</span>
+                    <button class="quick-filter-button active" onclick="applyQuickFilter('all')">All Changes</button>
+                    <button class="quick-filter-button" onclick="applyQuickFilter('current')">Current Scope Only</button>
+                    <button class="quick-filter-button" onclick="applyQuickFilter('today')">Changed Today</button>
+                </div>
+
+                <div class="summary-bar">
+                    <div class="summary-info">
+                        <span id="changeCount">12</span> Pending Changes Across <span id="scopeCount">3</span> Scopes
+                    </div>
+                    <div>
+                        <button class="toolbar-button" onclick="expandAll()">Expand All</button>
+                        <button class="toolbar-button" onclick="collapseAll()">Collapse All</button>
+                    </div>
+                </div>
+
+                <div class="button-toolbar">
+                    <input type="checkbox" id="selectAll"> <label for="selectAll">Select All</label>
+                    <button class="toolbar-button primary" id="publishSelected">Publish Selected</button>
+                    <button class="toolbar-button primary" id="publishAll">Publish All</button>
+                    <button class="toolbar-button primary" id="publishScope">Publish Current Scope</button>
+                    <button class="toolbar-button" id="discardSelected">Discard Selected</button>
+                </div>
+
+                <table class="changes-table">
+                <thead>
+                    <tr>
+                        <th style="width: 40px;"></th>
+                        <th style="width: 300px;">Scope / Element</th>
+                        <th style="width: 250px;">Currently Applied</th>
+                        <th style="width: 80px;">Source</th>
+                        <th style="width: 250px;">New Value</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <!-- Team: North America -->
+                    <tr class="hierarchy-row team" onclick="toggleHierarchy(this, 'na')">
+                        <td></td>
+                        <td>
+                            <span class="scope-name level-0">
+                                <span class="expand-icon">▼</span>
+                                <strong>North America</strong>
+                            </span>
+                        </td>
+                        <td colspan="3">8 changes</td>
+                    </tr>
+
+                    <!-- Team-level change: Quote Expiry Date -->
+                    <tr class="hierarchy-row element na-child">
+                        <td><input type="checkbox" class="change-checkbox"></td>
+                        <td><span class="scope-name level-1">Quote Expiry Date</span></td>
+                        <td class="read-only-value">Find the date...</td>
+                        <td><span class="source-badge global">Global</span></td>
+                        <td class="editable-value" contenteditable="true">For North America, use MM/DD/YYYY format</td>
+                    </tr>
+
+                    <!-- Team-level change: Broker Comments -->
+                    <tr class="hierarchy-row element na-child">
+                        <td><input type="checkbox" class="change-checkbox"></td>
+                        <td><span class="scope-name level-1">Broker Comments</span></td>
+                        <td class="read-only-value">Extract broker notes...</td>
+                        <td><span class="source-badge global">Global</span></td>
+                        <td class="editable-value" contenteditable="true">Include timestamp and author for NA region</td>
+                    </tr>
+
+                    <!-- Sub-team: Middle Market -->
+                    <tr class="hierarchy-row subteam na-child" onclick="toggleHierarchy(this, 'na-mm')">
+                        <td></td>
+                        <td>
+                            <span class="scope-name level-1">
+                                <span class="expand-icon">▼</span>
+                                <strong>Middle Market</strong>
+                            </span>
+                        </td>
+                        <td colspan="3">5 changes</td>
+                    </tr>
+
+                    <!-- Product: Construction -->
+                    <tr class="hierarchy-row product na-child na-mm-child" onclick="toggleHierarchy(this, 'na-mm-construction')">
+                        <td></td>
+                        <td>
+                            <span class="scope-name level-2">
+                                <span class="expand-icon">▼</span>
+                                <strong>Construction</strong>
+                            </span>
+                        </td>
+                        <td colspan="3">1 change</td>
+                    </tr>
+
+                    <!-- Product-level change: Response Type -->
+                    <tr class="hierarchy-row element na-child na-mm-child na-mm-construction-child">
+                        <td><input type="checkbox" class="change-checkbox"></td>
+                        <td><span class="scope-name level-3">Response Type</span></td>
+                        <td class="read-only-value">Extract response type from...</td>
+                        <td><span class="source-badge global">Global</span></td>
+                        <td class="editable-value" contenteditable="true">For construction risks, identify coverage type carefully</td>
+                    </tr>
+
+                    <!-- Product: Property -->
+                    <tr class="hierarchy-row product na-child na-mm-child" onclick="toggleHierarchy(this, 'na-mm-property')">
+                        <td></td>
+                        <td>
+                            <span class="scope-name level-2">
+                                <span class="expand-icon">▼</span>
+                                <strong>Property</strong>
+                            </span>
+                        </td>
+                        <td colspan="3">2 changes</td>
+                    </tr>
+
+                    <!-- Product-level changes for Property -->
+                    <tr class="hierarchy-row element na-child na-mm-child na-mm-property-child">
+                        <td><input type="checkbox" class="change-checkbox"></td>
+                        <td><span class="scope-name level-3">Premium/Cost Component</span></td>
+                        <td class="read-only-value"></td>
+                        <td></td>
+                        <td class="editable-value" contenteditable="true">For property risks, include building details and location</td>
+                    </tr>
+
+                    <tr class="hierarchy-row element na-child na-mm-child na-mm-property-child">
+                        <td><input type="checkbox" class="change-checkbox"></td>
+                        <td><span class="scope-name level-3">Description</span></td>
+                        <td class="read-only-value">Summarize...</td>
+                        <td><span class="source-badge global">Global</span></td>
+                        <td class="editable-value" contenteditable="true">Use concise language for NA market</td>
+                    </tr>
+
+                    <!-- Sub-team: L&C -->
+                    <tr class="hierarchy-row subteam na-child" onclick="toggleHierarchy(this, 'na-lc')">
+                        <td></td>
+                        <td>
+                            <span class="scope-name level-1">
+                                <span class="expand-icon">▼</span>
+                                <strong>L&C</strong>
+                            </span>
+                        </td>
+                        <td colspan="3">2 changes</td>
+                    </tr>
+
+                    <!-- Product: Cyber -->
+                    <tr class="hierarchy-row product na-child na-lc-child" onclick="toggleHierarchy(this, 'na-lc-cyber')">
+                        <td></td>
+                        <td>
+                            <span class="scope-name level-2">
+                                <span class="expand-icon">▼</span>
+                                <strong>Cyber</strong>
+                            </span>
+                        </td>
+                        <td colspan="3">2 changes</td>
+                    </tr>
+
+                    <!-- Product-level changes for Cyber -->
+                    <tr class="hierarchy-row element na-child na-lc-child na-lc-cyber-child">
+                        <td><input type="checkbox" class="change-checkbox"></td>
+                        <td><span class="scope-name level-3">Response Type</span></td>
+                        <td class="read-only-value">Extract response type from...</td>
+                        <td><span class="source-badge global">Global</span></td>
+                        <td class="editable-value" contenteditable="true">For cyber risks, identify data breach coverage</td>
+                    </tr>
+
+                    <tr class="hierarchy-row element na-child na-lc-child na-lc-cyber-child">
+                        <td><input type="checkbox" class="change-checkbox"></td>
+                        <td><span class="scope-name level-3">Exposure</span></td>
+                        <td class="read-only-value">Identify any exposure...</td>
+                        <td><span class="source-badge global">Global</span></td>
+                        <td class="editable-value" contenteditable="true">Identify cyber exposure including ransomware and data loss</td>
+                    </tr>
+                </tbody>
+            </table>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        function toggleHierarchy(row, childClass) {
+            const icon = row.querySelector('.expand-icon');
+            const children = document.querySelectorAll('.' + childClass + '-child');
+            
+            if (icon.textContent === '▼') {
+                icon.textContent = '▶';
+                children.forEach(child => child.classList.add('hidden'));
+            } else {
+                icon.textContent = '▼';
+                children.forEach(child => child.classList.remove('hidden'));
+            }
+        }
+
+        function expandAll() {
+            document.querySelectorAll('.expand-icon').forEach(icon => {
+                icon.textContent = '▼';
+            });
+            document.querySelectorAll('.hierarchy-row').forEach(row => {
+                row.classList.remove('hidden');
+            });
+        }
+
+        function collapseAll() {
+            document.querySelectorAll('.expand-icon').forEach(icon => {
+                icon.textContent = '▶';
+            });
+            // Hide all child rows (but keep top-level teams visible)
+            document.querySelectorAll('[class*="-child"]').forEach(row => {
+                row.classList.add('hidden');
+            });
+        }
+
+        // Select all checkbox functionality
+        document.getElementById('selectAll').addEventListener('change', function() {
+            const checkboxes = document.querySelectorAll('.change-checkbox');
+            checkboxes.forEach(cb => cb.checked = this.checked);
+        });
+
+        // Update button states based on selection
+        document.querySelectorAll('.change-checkbox').forEach(checkbox => {
+            checkbox.addEventListener('change', updateButtonStates);
+        });
+
+        function updateButtonStates() {
+            const selected = document.querySelectorAll('.change-checkbox:checked').length;
+            const publishSelectedBtn = document.getElementById('publishSelected');
+            const discardSelectedBtn = document.getElementById('discardSelected');
+            
+            if (selected > 0) {
+                publishSelectedBtn.disabled = false;
+                discardSelectedBtn.disabled = false;
+            } else {
+                publishSelectedBtn.disabled = true;
+                discardSelectedBtn.disabled = true;
+            }
+        }
+
+        // Initialize button states
+        updateButtonStates();
+
+        // Display pending changes count on page load
+        const pendingCount = sessionStorage.getItem('pendingChangesCount');
+        if (pendingCount) {
+            const counter = document.getElementById('tabCounter');
+            counter.style.display = 'inline';
+            counter.textContent = '(' + pendingCount + ')';
+        }
+
+        // Quick filter functionality
+        function applyQuickFilter(filterType) {
+            // Update active button
+            document.querySelectorAll('.quick-filter-button').forEach(btn => {
+                btn.classList.remove('active');
+            });
+            event.target.classList.add('active');
+
+            // Apply filter logic (placeholder for now)
+            console.log('Applied quick filter:', filterType);
+        }
+
+        // Filter event listeners
+        document.getElementById('filterTeam').addEventListener('change', applyFilters);
+        document.getElementById('filterSegment').addEventListener('change', applyFilters);
+        document.getElementById('filterProduct').addEventListener('change', applyFilters);
+
+        function applyFilters() {
+            const teamFilter = document.getElementById('filterTeam').value;
+            const segmentFilter = document.getElementById('filterSegment').value;
+            const productFilter = document.getElementById('filterProduct').value;
+
+            // Show/hide rows based on filter
+            document.querySelectorAll('.hierarchy-row').forEach(row => {
+                let shouldShow = true;
+
+                if (teamFilter) {
+                    shouldShow = row.className.includes(teamFilter) || 
+                                 row.className.includes(teamFilter + '-child');
+                }
+
+                if (shouldShow && segmentFilter) {
+                    shouldShow = row.className.includes(segmentFilter) || 
+                                 row.className.includes(segmentFilter + '-child');
+                }
+
+                if (shouldShow && productFilter) {
+                    shouldShow = row.className.includes(productFilter) || 
+                                 row.className.includes(productFilter + '-child');
+                }
+
+                row.classList.toggle('hidden', !shouldShow);
+            });
+        }
+
+        // Publish Current Scope button
+        document.getElementById('publishScope').addEventListener('click', function() {
+            alert('Publishing changes for current scope only...');
+        });
+
+        // Make editable value cells actually editable with proper styling
+        document.querySelectorAll('.editable-value').forEach(cell => {
+            cell.addEventListener('focus', function() {
+                this.style.backgroundColor = '#fff';
+                this.style.outline = '2px solid #0066cc';
+            });
+            cell.addEventListener('blur', function() {
+                this.style.backgroundColor = '#fffdf0';
+                this.style.outline = 'none';
+            });
+            // Allow edit without double-click
+            cell.addEventListener('click', function(e) {
+                if (!this.classList.contains('focused')) {
+                    this.focus();
+                    this.classList.add('focused');
+                }
+            });
+        });
+    </script>
+</body>
+</html>

@@ -368,6 +368,7 @@
             align-items: center;
             font-size: 13px;
             gap: 15px;
+            flex-shrink: 0;
         }
 
         .changes-banner.hidden {
@@ -671,6 +672,14 @@
             <button class="scope-button">Clear All</button>
         </div>
 
+            <div class="changes-banner hidden" id="changesBanner">
+                <div class="changes-count">You have <span id="changesCount">0</span> unpublished change<span id="changeS">s</span></div>
+                <div class="banner-actions">
+                    <button class="banner-button" onclick="discardChanges()">Discard</button>
+                    <button class="banner-button primary" onclick="goToReview()">Review & Publish</button>
+                </div>
+            </div>
+
             <div class="main-content">
                 <div class="scope-tree-panel">
                     <div class="scope-tree-header">Scope Hierarchy</div>
@@ -725,14 +734,6 @@
                             </ul>
                         </ul>
                     </ul>
-                </div>
-
-                <div class="changes-banner hidden" id="changesBanner">
-                    <div class="changes-count">You have <span id="changesCount">0</span> unpublished change<span id="changeS">s</span></div>
-                    <div class="banner-actions">
-                        <button class="banner-button" onclick="discardChanges()">Discard</button>
-                        <button class="banner-button primary" onclick="goToReview()">Review & Publish</button>
-                    </div>
                 </div>
 
                 <div class="element-tree-panel">

@@ -1,0 +1,1313 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Document Ingestion Prompt Management - Scope-Based View (MVP)</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Arial, sans-serif;
+            font-size: 13px;
+            background-color: #f5f5f5;
+        }
+
+        .header {
+            background-color: #fff;
+            border-bottom: 1px solid #ccc;
+            padding: 10px 20px;
+            text-align: center;
+            font-weight: bold;
+            font-size: 14px;
+        }
+
+        .tabs {
+            background-color: #fff;
+            border-bottom: 1px solid #ccc;
+            padding: 0 20px;
+            display: flex;
+            gap: 10px;
+            flex-shrink: 0;
+        }
+
+        .tab {
+            padding: 10px 20px;
+            cursor: pointer;
+            border-bottom: 2px solid transparent;
+            text-decoration: none;
+            color: #333;
+        }
+
+        .tab.active {
+            color: #0066cc;
+            border-bottom-color: #0066cc;
+            font-weight: bold;
+        }
+
+        .container {
+            display: flex;
+            height: calc(100vh - 50px);
+            background-color: #fff;
+        }
+
+        .nav-panel {
+            width: 180px;
+            background-color: #f9f9f9;
+            border-right: 1px solid #ccc;
+            padding: 10px;
+            overflow-y: auto;
+        }
+
+        .right-panel {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+        }
+
+        .nav-header {
+            font-weight: bold;
+            padding: 8px;
+            margin-bottom: 10px;
+            border-bottom: 1px solid #ccc;
+        }
+
+        .nav-item {
+            padding: 8px;
+            cursor: pointer;
+            border-radius: 3px;
+            margin-bottom: 2px;
+        }
+
+        .nav-item:hover {
+            background-color: #e0e0e0;
+        }
+
+        .nav-item.active {
+            background-color: #0066cc;
+            color: white;
+            font-weight: bold;
+        }
+
+        .scope-panel {
+            display: none;
+        }
+
+        .filter-bar {
+            padding: 12px 15px;
+            background-color: #f9f9f9;
+            border-bottom: 1px solid #ddd;
+            display: flex;
+            gap: 12px;
+            align-items: center;
+            flex-wrap: wrap;
+        }
+
+        .filter-group {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+
+        .filter-group-label {
+            font-weight: 600;
+            font-size: 12px;
+            color: #333;
+        }
+
+        .filter-group-select {
+            padding: 6px 10px;
+            border: 1px solid #ccc;
+            border-radius: 3px;
+            font-size: 12px;
+            min-width: 110px;
+            background-color: #fff;
+        }
+
+        .grid-panel {
+            flex: 1;
+            overflow: auto;
+            padding: 10px;
+        }
+
+        .button-toolbar {
+            padding: 10px;
+            border-bottom: 1px solid #ddd;
+            background-color: #f9f9f9;
+            display: flex;
+            gap: 10px;
+        }
+
+        .toolbar-button {
+            padding: 8px 16px;
+            border: 1px solid #ccc;
+            background-color: #fff;
+            cursor: pointer;
+            border-radius: 3px;
+        }
+
+        .toolbar-button:hover {
+            background-color: #f0f0f0;
+        }
+
+        .toolbar-button.primary {
+            background-color: #0066cc;
+            color: white;
+            border-color: #0066cc;
+        }
+
+        .toolbar-button.primary:hover {
+            background-color: #0052a3;
+        }
+
+        .toolbar-select {
+            padding: 8px 16px;
+            border: 1px solid #ccc;
+            background-color: #fff;
+            cursor: pointer;
+            border-radius: 3px;
+            min-width: 150px;
+        }
+
+        .grid-table {
+            width: 100%;
+            border-collapse: collapse;
+            background-color: #fff;
+        }
+
+        .grid-table th {
+            background-color: #e0e0e0;
+            padding: 10px 8px;
+            text-align: left;
+            border: 1px solid #ccc;
+            font-weight: bold;
+            position: sticky;
+            top: 0;
+            z-index: 10;
+        }
+
+        .grid-table td {
+            padding: 8px;
+            border: 1px solid #ddd;
+            vertical-align: top;
+        }
+
+        .grid-table tr:hover {
+            background-color: #f9f9f9;
+        }
+
+        .element-row {
+            cursor: pointer;
+        }
+
+        .element-row.parent {
+            font-weight: bold;
+        }
+
+        .element-content {
+            display: block;
+        }
+
+        .element-content.level-1 {
+            margin-left: 20px;
+        }
+
+        .element-content.level-2 {
+            margin-left: 40px;
+        }
+
+        .expand-icon {
+            display: inline-block;
+            width: 16px;
+            margin-right: 5px;
+            font-family: monospace;
+        }
+
+        .editable {
+            background-color: #fffdf0;
+            min-height: 20px;
+            padding: 4px;
+            border-radius: 2px;
+        }
+
+        .editable:hover {
+            background-color: #fff9d0;
+            outline: 1px solid #ccc;
+        }
+
+        .read-only {
+            background-color: #f5f5f5;
+            color: #666;
+        }
+
+        .detail-row {
+            display: none;
+        }
+
+        .detail-row.expanded {
+            display: table-row;
+        }
+
+        .detail-content {
+            padding: 15px;
+            background-color: #fafafa;
+        }
+
+        .prompts-container {
+            display: flex;
+            gap: 15px;
+            align-items: flex-start;
+        }
+
+        .prompt-field {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            gap: 5px;
+        }
+
+        .prompt-label {
+            font-weight: 600;
+            font-size: 12px;
+            color: #333;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        .prompt-textarea {
+            min-height: 150px;
+            padding: 8px;
+            border: 1px solid #ccc;
+            border-radius: 3px;
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Arial, sans-serif;
+            font-size: 12px;
+            resize: vertical;
+            background-color: #fff;
+            line-height: 1.5;
+        }
+
+        .prompt-textarea.read-only {
+            background-color: #f5f5f5;
+            color: #666;
+            cursor: not-allowed;
+        }
+
+        .prompt-textarea.editable {
+            background-color: #fffdf0;
+        }
+
+        .prompt-textarea.editable:focus {
+            background-color: #fff;
+            outline: 2px solid #0066cc;
+        }
+
+        .prompt-textarea.editable.has-changes {
+            border-left: 3px solid #ffc107;
+            background-color: #fffdf0;
+        }
+
+        .hidden-field {
+            display: none;
+        }
+
+        .scope-badge {
+            display: inline-block;
+            padding: 2px 6px;
+            background-color: #e0e0e0;
+            border-radius: 3px;
+            font-size: 11px;
+            margin: 1px;
+        }
+
+        .changes-banner {
+            background-color: #fff8e1;
+            border-bottom: 1px solid #ffc107;
+            padding: 12px 15px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            font-size: 13px;
+            gap: 15px;
+        }
+
+        .changes-banner.hidden {
+            display: none;
+        }
+
+        .changes-count {
+            font-weight: 600;
+            color: #333;
+        }
+
+        .banner-actions {
+            display: flex;
+            gap: 10px;
+        }
+
+        .banner-button {
+            padding: 6px 14px;
+            border: 1px solid #ffc107;
+            background-color: transparent;
+            color: #333;
+            cursor: pointer;
+            border-radius: 3px;
+            font-size: 12px;
+            font-weight: 600;
+        }
+
+        .banner-button:hover {
+            background-color: #ffc107;
+        }
+
+        .banner-button.primary {
+            background-color: #0066cc;
+            color: white;
+            border-color: #0066cc;
+        }
+
+        .banner-button.primary:hover {
+            background-color: #0052a3;
+        }
+
+        .edited-cell {
+            background-color: #fffdf0 !important;
+            border-left: 3px solid #ffc107;
+        }
+
+        .has-changes-badge::after {
+            content: '●';
+            color: #ff9800;
+            margin-left: 6px;
+            font-size: 8px;
+        }
+
+        .product-column {
+            display: none;
+        }
+
+        .product-column.visible {
+            display: table-cell;
+        }
+
+        .hidden {
+            display: none;
+        }
+
+        .main-content {
+            display: flex;
+            flex: 1;
+            overflow: hidden;
+            gap: 0;
+        }
+
+        .scope-tree-panel {
+            width: 200px;
+            background-color: #f9f9f9;
+            border-right: 1px solid #ddd;
+            overflow-y: auto;
+            padding: 10px;
+        }
+
+        .scope-tree-header {
+            font-weight: 600;
+            font-size: 12px;
+            color: #333;
+            margin-bottom: 10px;
+            padding: 8px;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        .tree-node {
+            padding: 0;
+            margin: 0;
+            list-style: none;
+        }
+
+        .tree-node-item {
+            padding: 6px 8px;
+            cursor: pointer;
+            border-radius: 3px;
+            display: flex;
+            align-items: center;
+            gap: 4px;
+            user-select: none;
+        }
+
+        .tree-node-item:hover {
+            background-color: #e8e8e8;
+        }
+
+        .tree-node-item.active {
+            background-color: #0066cc;
+            color: white;
+            font-weight: 600;
+        }
+
+        .tree-toggle {
+            display: inline-block;
+            width: 16px;
+            text-align: center;
+            font-family: monospace;
+            font-size: 12px;
+        }
+
+        .tree-toggle.leaf {
+            visibility: hidden;
+        }
+
+        .tree-children {
+            margin-left: 16px;
+        }
+
+        .tree-children.hidden {
+            display: none;
+        }
+
+        .grid-panel-container {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+        }
+    </style>
+</head>
+<body>
+    <div class="header">Document Ingestion Prompt Management - Scope-Based View (MVP)</div>
+    
+    <div class="container">
+        <div class="nav-panel">
+            <div class="nav-header">☰ WTW Willis</div>
+            <div class="nav-item">Home</div>
+            <div class="nav-item">All Placements</div>
+            <div class="nav-item">Templates</div>
+            <div class="nav-item">Document Ingestion</div>
+            <div class="nav-item active">→ Prompt Management</div>
+            <div class="nav-item">Service Hub</div>
+            <div class="nav-item">Risk Hub</div>
+            <div class="nav-item">Quality Index Buyers</div>
+            <div class="nav-item">Training Materials</div>
+        </div>
+
+        <div class="right-panel">
+            <div class="tabs">
+                <a href="DocumentIngestion-PromptManagement-ScopeView-MVP.html" class="tab active">Edit Prompts</a>
+                <a href="DocumentIngestion-PromptManagement-PendingChanges-MVP.html" class="tab">Review and Publish <span id="tabCounter" style="display: none;">(0)</span></a>
+            </div>
+
+            <div class="scope-panel">
+            <div class="scope-section">
+                <label class="scope-label">Team</label>
+                <select class="scope-select">
+                    <option>North America</option>
+                    <option>UK</option>
+                    <option>APAC</option>
+                </select>
+            </div>
+
+            <div class="scope-section">
+                <label class="scope-label">Broking Segment</label>
+                <select class="scope-select">
+                    <option>Global Line of Business</option>
+                    <option>Commercial</option>
+                    <option>Specialty</option>
+                </select>
+            </div>
+
+            <div class="scope-section">
+                <label class="scope-label">Document Type</label>
+                <select class="scope-select">
+                    <option>Quote</option>
+                    <option>Binder</option>
+                    <option>Policy</option>
+                </select>
+            </div>
+
+            <button class="scope-button">Apply</button>
+            <button class="scope-button">Clear All</button>
+        </div>
+
+            <div class="main-content">
+                <div class="scope-tree-panel">
+                    <div class="scope-tree-header">Scope Hierarchy</div>
+                    <ul class="tree-node">
+                        <li class="tree-node-item" onclick="event.stopPropagation(); toggleNode(this)">
+                            <span class="tree-toggle">▼</span>
+                            <span onclick="selectScope(this.parentElement, 'global')">Global</span>
+                        </li>
+                        <ul class="tree-children">
+                        </ul>
+                        
+                        <li class="tree-node-item" onclick="event.stopPropagation(); toggleNode(this)">
+                            <span class="tree-toggle">▼</span>
+                            <span onclick="selectScope(this.parentElement, 'na')">North America</span>
+                        </li>
+                        <ul class="tree-children">
+                            <li class="tree-node-item" onclick="event.stopPropagation(); toggleNode(this)">
+                                <span class="tree-toggle">▶</span>
+                                <span onclick="selectScope(this.parentElement, 'na-mm')">Middle Market</span>
+                            </li>
+                            <ul class="tree-children hidden">
+                            </ul>
+                            <li class="tree-node-item" onclick="event.stopPropagation(); toggleNode(this)">
+                                <span class="tree-toggle">▶</span>
+                                <span onclick="selectScope(this.parentElement, 'na-lc')">L&C</span>
+                            </li>
+                            <ul class="tree-children hidden">
+                            </ul>
+                        </ul>
+                        
+                        <li class="tree-node-item" onclick="event.stopPropagation(); toggleNode(this)">
+                            <span class="tree-toggle">▼</span>
+                            <span onclick="selectScope(this.parentElement, 'crb')">CRB</span>
+                        </li>
+                        <ul class="tree-children">
+                            <li class="tree-node-item" onclick="event.stopPropagation(); toggleNode(this)">
+                                <span class="tree-toggle">▶</span>
+                                <span onclick="selectScope(this.parentElement, 'crb-gb')">GB</span>
+                            </li>
+                            <ul class="tree-children hidden">
+                            </ul>
+                        </ul>
+                    </ul>
+                </div>
+
+                <div class="grid-panel-container">
+            <div class="filter-bar">
+                <div class="filter-group">
+                    <label class="filter-group-label">Product:</label>
+                    <select class="filter-group-select" id="productSelect">
+                        <option>[None]</option>
+                        <option>Cyber</option>
+                        <option>Property</option>
+                        <option>Casualty</option>
+                        <option>D&O</option>
+                        <option>E&O</option>
+                    </select>
+                </div>
+            </div>
+
+            <div class="changes-banner hidden" id="changesBanner">
+                <div class="changes-count">You have <span id="changesCount">0</span> unpublished change<span id="changeS">s</span></div>
+                <div class="banner-actions">
+                    <button class="banner-button" onclick="discardChanges()">Discard</button>
+                    <button class="banner-button primary" onclick="goToReview()">Review & Publish</button>
+                </div>
+            </div>
+
+            <table class="grid-table">
+                <thead>
+                    <tr>
+                        <th>Element</th>
+                        <th>Currently Applied Prompt</th>
+                        <th>Source</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <!-- Response Type -->
+                    <tr class="element-row master-row" data-element-id="response-type">
+                        <td><span class="expand-icon">▶</span>Response Type</td>
+                        <td class="read-only" data-applied-for="response-type">Extract the response type from the document.
+
+Look for indicators such as:
+- Firm order
+- Quote...</td>
+                        <td><span class="scope-badge" data-source-for="response-type">Global</span></td>
+                    </tr>
+                    <tr class="detail-row" data-element-id="response-type">
+                        <td colspan="3">
+                            <div class="detail-content">
+                                <div class="prompts-container">
+                                    <div class="prompt-field">
+                                        <label class="prompt-label">Global Prompt (Read-Only)</label>
+                                        <textarea class="prompt-textarea read-only" readonly>Extract the response type from the document.
+
+Look for indicators such as:
+- Firm order
+- Quote
+- Indication
+- Declination
+
+Provide the response type as a single value.</textarea>
+                                    </div>
+                                    <div class="prompt-field team-field">
+                                        <label class="prompt-label team-label">Team Prompt (Editable)</label>
+                                        <textarea class="prompt-textarea editable" data-type="team" data-element="response-type">For North America submissions, identify the response type with special attention to:
+
+- Market-specific language (e.g., "bound", "quoted")
+- Regional terminology differences
+- Date formats in MM/DD/YYYY
+
+Ensure consistency with North American market standards.</textarea>
+                                    </div>
+                                    <div class="prompt-field product-field hidden-field">
+                                        <label class="prompt-label product-label">Product Prompt (Editable)</label>
+                                        <textarea class="prompt-textarea editable" data-type="product" data-element="response-type">For cyber risk submissions, identify response type considering:
+
+- Cyber-specific coverage triggers
+- Conditional quotes based on security assessments
+- Multi-stage approval processes
+- Privacy law compliance requirements
+
+Highlight any cyber-conditional terms affecting the response.</textarea>
+                                    </div>
+                                </div>
+                            </div>
+                        </td>
+                    </tr>
+
+                    <!-- Market Securities -->
+                    <tr class="element-row master-row" data-element-id="market-securities">
+                        <td><span class="expand-icon">▶</span>Market Securities</td>
+                        <td class="read-only" data-applied-for="market-securities">List all market securities mentioned in the document.
+
+Include:
+- Market names
+- Security identifiers...</td>
+                        <td><span class="scope-badge" data-source-for="market-securities">Global</span></td>
+                    </tr>
+                    <tr class="detail-row" data-element-id="market-securities">
+                        <td colspan="3">
+                            <div class="detail-content">
+                                <div class="prompts-container">
+                                    <div class="prompt-field">
+                                        <label class="prompt-label">Global Prompt (Read-Only)</label>
+                                        <textarea class="prompt-textarea read-only" readonly>List all market securities mentioned in the document.
+
+Include:
+- Market names
+- Security identifiers
+- ISIN/CUSIP numbers if present
+- Exchange codes
+
+Format as a comma-separated list.</textarea>
+                                    </div>
+                                    <div class="prompt-field team-field">
+                                        <label class="prompt-label team-label">Team Prompt (Editable)</label>
+                                        <textarea class="prompt-textarea editable" data-type="team" data-element="market-securities"></textarea>
+                                    </div>
+                                    <div class="prompt-field product-field hidden-field">
+                                        <label class="prompt-label product-label">Product Prompt (Editable)</label>
+                                        <textarea class="prompt-textarea editable" data-type="product" data-element="market-securities"></textarea>
+                                    </div>
+                                </div>
+                            </div>
+                        </td>
+                    </tr>
+
+                    <!-- Quote Expiry Date -->
+                    <tr class="element-row master-row" data-element-id="quote-expiry">
+                        <td><span class="expand-icon">▶</span>Quote Expiry Date</td>
+                        <td class="read-only" data-applied-for="quote-expiry">Find the quote expiry date in the document.
+
+Look for:
+- Explicit "expiry" or "expiration" dates...</td>
+                        <td><span class="scope-badge" data-source-for="quote-expiry">Global</span></td>
+                    </tr>
+                    <tr class="detail-row" data-element-id="quote-expiry">
+                        <td colspan="3">
+                            <div class="detail-content">
+                                <div class="prompts-container">
+                                    <div class="prompt-field">
+                                        <label class="prompt-label">Global Prompt (Read-Only)</label>
+                                        <textarea class="prompt-textarea read-only" readonly>Find the quote expiry date in the document.
+
+Look for:
+- Explicit "expiry" or "expiration" dates
+- "Valid until" dates
+- "Quote good through" language
+
+Return in ISO format (YYYY-MM-DD).</textarea>
+                                    </div>
+                                    <div class="prompt-field team-field">
+                                        <label class="prompt-label team-label">Team Prompt (Editable)</label>
+                                        <textarea class="prompt-textarea editable" data-type="team" data-element="quote-expiry">For North America quotes, extract the expiry date:
+
+- Convert to MM/DD/YYYY format
+- Handle regional variations (e.g., "end of business day")
+- Account for timezone differences
+- Default to 30 days if not explicitly stated
+
+Ensure compliance with North American market conventions.</textarea>
+                                    </div>
+                                    <div class="prompt-field product-field hidden-field">
+                                        <label class="prompt-label product-label">Product Prompt (Editable)</label>
+                                        <textarea class="prompt-textarea editable" data-type="product" data-element="quote-expiry"></textarea>
+                                    </div>
+                                </div>
+                            </div>
+                        </td>
+                    </tr>
+
+                    <!-- Exposure -->
+                    <tr class="element-row master-row" data-element-id="exposure">
+                        <td><span class="expand-icon">▶</span>Exposure</td>
+                        <td class="read-only" data-applied-for="exposure">Identify any exposure values mentioned in the document.
+
+Extract:
+- Total insured values (TIV)...</td>
+                        <td><span class="scope-badge" data-source-for="exposure">Global</span></td>
+                    </tr>
+                    <tr class="detail-row" data-element-id="exposure">
+                        <td colspan="3">
+                            <div class="detail-content">
+                                <div class="prompts-container">
+                                    <div class="prompt-field">
+                                        <label class="prompt-label">Global Prompt (Read-Only)</label>
+                                        <textarea class="prompt-textarea read-only" readonly>Identify any exposure values mentioned in the document.
+
+Extract:
+- Total insured values (TIV)
+- Per-location exposures
+- Aggregate limits
+- Sub-limits by coverage type
+
+Provide monetary amounts with currency codes.</textarea>
+                                    </div>
+                                    <div class="prompt-field team-field">
+                                        <label class="prompt-label team-label">Team Prompt (Editable)</label>
+                                        <textarea class="prompt-textarea editable" data-type="team" data-element="exposure"></textarea>
+                                    </div>
+                                    <div class="prompt-field product-field hidden-field">
+                                        <label class="prompt-label product-label">Product Prompt (Editable)</label>
+                                        <textarea class="prompt-textarea editable" data-type="product" data-element="exposure"></textarea>
+                                    </div>
+                                </div>
+                            </div>
+                        </td>
+                    </tr>
+
+                    <!-- Premium/Cost Component (parent) -->
+                    <tr class="element-row master-row parent" data-element-id="premium-parent">
+                        <td><span class="expand-icon">▶</span><strong>Premium/Cost Component</strong></td>
+                        <td></td>
+                        <td></td>
+                    </tr>
+
+                    <!-- Description (child of Premium) -->
+                    <tr class="element-row master-row child-element" data-element-id="premium-description" data-parent="premium-parent">
+                        <td><span class="element-content level-2"><span class="expand-icon">▶</span>Description</span></td>
+                        <td class="read-only" data-applied-for="premium-description">Summarize the premium/cost component description.
+
+Include:
+- Coverage type
+- Basis of premium calculation...</td>
+                        <td><span class="scope-badge" data-source-for="premium-description">Global</span></td>
+                    </tr>
+                    <tr class="detail-row" data-element-id="premium-description">
+                        <td colspan="3">
+                            <div class="detail-content">
+                                <div class="prompts-container">
+                                    <div class="prompt-field">
+                                        <label class="prompt-label">Global Prompt (Read-Only)</label>
+                                        <textarea class="prompt-textarea read-only" readonly>Summarize the premium/cost component description.
+
+Include:
+- Coverage type
+- Basis of premium calculation
+- Key rating factors
+- Special conditions or loadings</textarea>
+                                    </div>
+                                    <div class="prompt-field team-field">
+                                        <label class="prompt-label team-label">Team Prompt (Editable)</label>
+                                        <textarea class="prompt-textarea editable" data-type="team" data-element="premium-description">Summarize premium description using concise language:
+
+- Use standard terminology for the North American market
+- Highlight any team-specific rating methodologies
+- Note deviations from standard terms
+- Include any broker commentary on pricing</textarea>
+                                    </div>
+                                    <div class="prompt-field product-field hidden-field">
+                                        <label class="prompt-label product-label">Product Prompt (Editable)</label>
+                                        <textarea class="prompt-textarea editable" data-type="product" data-element="premium-description">Focus on property-specific details in the premium description:
+
+- Building characteristics affecting premium
+- Construction type and occupancy
+- Protection class and sprinkler details
+- Natural catastrophe modeling impacts
+- Replacement cost valuation basis</textarea>
+                                    </div>
+                                </div>
+                            </div>
+                        </td>
+                    </tr>
+
+                    <!-- Premium (Excl. Surplus Lines Tax, ...) -->
+                    <tr class="element-row master-row child-element" data-element-id="premium-amount" data-parent="premium-parent">
+                        <td><span class="element-content level-2"><span class="expand-icon">▶</span>Premium (Excl. Surplus Lines Tax, ...)</span></td>
+                        <td class="read-only" data-applied-for="premium-amount">Find the total premium amount excluding surplus lines tax and other assessments.
+
+Look for:
+- Base premium...</td>
+                        <td><span class="scope-badge" data-source-for="premium-amount">Global</span></td>
+                    </tr>
+                    <tr class="detail-row" data-element-id="premium-amount">
+                        <td colspan="3">
+                            <div class="detail-content">
+                                <div class="prompts-container">
+                                    <div class="prompt-field">
+                                        <label class="prompt-label">Global Prompt (Read-Only)</label>
+                                        <textarea class="prompt-textarea read-only" readonly>Find the total premium amount excluding surplus lines tax and other assessments.
+
+Look for:
+- Base premium
+- Policy premium
+- Premium before taxes
+- Net premium
+
+Exclude any taxes, fees, or surcharges.</textarea>
+                                    </div>
+                                    <div class="prompt-field team-field">
+                                        <label class="prompt-label team-label">Team Prompt (Editable)</label>
+                                        <textarea class="prompt-textarea editable" data-type="team" data-element="premium-amount"></textarea>
+                                    </div>
+                                    <div class="prompt-field product-field hidden-field">
+                                        <label class="prompt-label product-label">Product Prompt (Editable)</label>
+                                        <textarea class="prompt-textarea editable" data-type="product" data-element="premium-amount"></textarea>
+                                    </div>
+                                </div>
+                            </div>
+                        </td>
+                    </tr>
+
+                    <!-- Terrorism Coverage -->
+                    <tr class="element-row master-row child-element" data-element-id="terrorism-coverage" data-parent="premium-parent">
+                        <td><span class="element-content level-2"><span class="expand-icon">▶</span>Terrorism Coverage</span></td>
+                        <td class="read-only" data-applied-for="terrorism-coverage">Extract terrorism coverage details from the document.
+
+Identify:
+- Whether terrorism coverage is included...</td>
+                        <td><span class="scope-badge" data-source-for="terrorism-coverage">Global</span></td>
+                    </tr>
+                    <tr class="detail-row" data-element-id="terrorism-coverage">
+                        <td colspan="3">
+                            <div class="detail-content">
+                                <div class="prompts-container">
+                                    <div class="prompt-field">
+                                        <label class="prompt-label">Global Prompt (Read-Only)</label>
+                                        <textarea class="prompt-textarea read-only" readonly>Extract terrorism coverage details from the document.
+
+Identify:
+- Whether terrorism coverage is included or excluded
+- TRIA certification status
+- Coverage triggers and definitions
+- Any sub-limits or special conditions
+
+Note both domestic and international terrorism provisions.</textarea>
+                                    </div>
+                                    <div class="prompt-field team-field">
+                                        <label class="prompt-label team-label">Team Prompt (Editable)</label>
+                                        <textarea class="prompt-textarea editable" data-type="team" data-element="terrorism-coverage"></textarea>
+                                    </div>
+                                    <div class="prompt-field product-field hidden-field">
+                                        <label class="prompt-label product-label">Product Prompt (Editable)</label>
+                                        <textarea class="prompt-textarea editable" data-type="product" data-element="terrorism-coverage"></textarea>
+                                    </div>
+                                </div>
+                            </div>
+                        </td>
+                    </tr>
+
+                    <!-- TRIA Premium -->
+                    <tr class="element-row master-row child-element" data-element-id="tria-premium" data-parent="premium-parent">
+                        <td><span class="element-content level-2"><span class="expand-icon">▶</span>TRIA Premium</span></td>
+                        <td class="read-only" data-applied-for="tria-premium">Identify the TRIA (Terrorism Risk Insurance Act) premium amount.
+
+Look for:
+- TRIA premium or charge...</td>
+                        <td><span class="scope-badge" data-source-for="tria-premium">Global</span></td>
+                    </tr>
+                    <tr class="detail-row" data-element-id="tria-premium">
+                        <td colspan="3">
+                            <div class="detail-content">
+                                <div class="prompts-container">
+                                    <div class="prompt-field">
+                                        <label class="prompt-label">Global Prompt (Read-Only)</label>
+                                        <textarea class="prompt-textarea read-only" readonly>Identify the TRIA (Terrorism Risk Insurance Act) premium amount.
+
+Look for:
+- TRIA premium or charge
+- Terrorism premium component
+- Line items labeled as TRIA
+
+Provide the monetary amount and indicate if it's included in base premium or separate.</textarea>
+                                    </div>
+                                    <div class="prompt-field team-field">
+                                        <label class="prompt-label team-label">Team Prompt (Editable)</label>
+                                        <textarea class="prompt-textarea editable" data-type="team" data-element="tria-premium"></textarea>
+                                    </div>
+                                    <div class="prompt-field product-field hidden-field">
+                                        <label class="prompt-label product-label">Product Prompt (Editable)</label>
+                                        <textarea class="prompt-textarea editable" data-type="product" data-element="tria-premium"></textarea>
+                                    </div>
+                                </div>
+                            </div>
+                        </td>
+                    </tr>
+
+                    <!-- Surplus Lines Tax -->
+                    <tr class="element-row master-row child-element" data-element-id="surplus-lines-tax" data-parent="premium-parent">
+                        <td><span class="element-content level-2"><span class="expand-icon">▶</span>Surplus Lines Tax</span></td>
+                        <td class="read-only" data-applied-for="surplus-lines-tax">Calculate or extract the surplus lines tax amount.
+
+Find:
+- Surplus lines tax charges
+- Stamping fees...</td>
+                        <td><span class="scope-badge" data-source-for="surplus-lines-tax">Global</span></td>
+                    </tr>
+                    <tr class="detail-row" data-element-id="surplus-lines-tax">
+                        <td colspan="3">
+                            <div class="detail-content">
+                                <div class="prompts-container">
+                                    <div class="prompt-field">
+                                        <label class="prompt-label">Global Prompt (Read-Only)</label>
+                                        <textarea class="prompt-textarea read-only" readonly>Calculate or extract the surplus lines tax amount.
+
+Find:
+- Surplus lines tax charges
+- Stamping fees
+- State-specific assessments
+- Tax percentages and calculations
+
+Provide the total amount and breakdown by jurisdiction if available.</textarea>
+                                    </div>
+                                    <div class="prompt-field team-field">
+                                        <label class="prompt-label team-label">Team Prompt (Editable)</label>
+                                        <textarea class="prompt-textarea editable" data-type="team" data-element="surplus-lines-tax"></textarea>
+                                    </div>
+                                    <div class="prompt-field product-field hidden-field">
+                                        <label class="prompt-label product-label">Product Prompt (Editable)</label>
+                                        <textarea class="prompt-textarea editable" data-type="product" data-element="surplus-lines-tax"></textarea>
+                                    </div>
+                                </div>
+                            </div>
+                        </td>
+                    </tr>
+
+                    <!-- Broker Comments -->
+                    <tr class="element-row master-row" data-element-id="broker-comments">
+                        <td><span class="expand-icon">▶</span>Broker Comments</td>
+                        <td class="read-only" data-applied-for="broker-comments">Extract broker comments or notes from the document.
+
+Include:
+- Market commentary
+- Negotiation notes...</td>
+                        <td><span class="scope-badge" data-source-for="broker-comments">Global</span></td>
+                    </tr>
+                    <tr class="detail-row" data-element-id="broker-comments">
+                        <td colspan="3">
+                            <div class="detail-content">
+                                <div class="prompts-container">
+                                    <div class="prompt-field">
+                                        <label class="prompt-label">Global Prompt (Read-Only)</label>
+                                        <textarea class="prompt-textarea read-only" readonly>Extract broker comments or notes from the document.
+
+Include:
+- Market commentary
+- Negotiation notes
+- Special instructions
+- Internal notes or observations
+
+Preserve original formatting and attribution where possible.</textarea>
+                                    </div>
+                                    <div class="prompt-field team-field">
+                                        <label class="prompt-label team-label">Team Prompt (Editable)</label>
+                                        <textarea class="prompt-textarea editable" data-type="team" data-element="broker-comments">Extract broker comments with special attention to:
+
+- Author name and timestamp
+- References to client conversations
+- Market conditions affecting placement
+- Team-specific notification requirements
+
+Format comments with clear attribution and chronological order.</textarea>
+                                    </div>
+                                    <div class="prompt-field product-field hidden-field">
+                                        <label class="prompt-label product-label">Product Prompt (Editable)</label>
+                                        <textarea class="prompt-textarea editable" data-type="product" data-element="broker-comments"></textarea>
+                                    </div>
+                                </div>
+                            </div>
+                        </td>
+                    </tr>
+                </tbody>
+            </table>
+            </div>
+        </div>
+        </div>
+    </div>
+
+    <script>
+        // Track changes
+        const editedTextareas = new Set();
+        
+        // Master/Detail expand/collapse
+        document.querySelectorAll('.master-row').forEach(row => {
+            row.addEventListener('click', function() {
+                const elementId = this.getAttribute('data-element-id');
+                const detailRow = document.querySelector(`.detail-row[data-element-id="${elementId}"]`);
+                const icon = this.querySelector('.expand-icon');
+                
+                if (detailRow) {
+                    detailRow.classList.toggle('expanded');
+                    icon.textContent = detailRow.classList.contains('expanded') ? '▼' : '▶';
+                }
+            });
+        });
+
+        // Team field visibility based on scope selection
+        function updateTeamFieldVisibility(scopeId) {
+            const teamFields = document.querySelectorAll('.team-field');
+            teamFields.forEach(field => {
+                if (scopeId === 'global') {
+                    field.classList.add('hidden-field');
+                } else {
+                    field.classList.remove('hidden-field');
+                }
+            });
+        }
+
+        // Product field visibility based on product selection
+        document.getElementById('productSelect').addEventListener('change', function() {
+            const productFields = document.querySelectorAll('.product-field');
+            const selectedProduct = this.value;
+            
+            productFields.forEach(field => {
+                if (selectedProduct === '[None]') {
+                    field.classList.add('hidden-field');
+                } else {
+                    field.classList.remove('hidden-field');
+                    // Update label with selected product name
+                    const label = field.querySelector('.product-label');
+                    if (label) {
+                        label.textContent = selectedProduct + ' Prompt (Editable)';
+                    }
+                }
+            });
+            
+            // Recalculate currently applied displays
+            recalculateAllCurrentlyApplied();
+        });
+
+        function recalculateAllCurrentlyApplied() {
+            document.querySelectorAll('[data-applied-for]').forEach(appliedDisplay => {
+                const elementId = appliedDisplay.getAttribute('data-applied-for');
+                const detailRow = document.querySelector(`.detail-row[data-element-id="${elementId}"]`);
+                
+                if (!detailRow) return;
+                
+                // Get all textareas for this element
+                const globalTextarea = detailRow.querySelector('.prompt-textarea.read-only');
+                const teamTextarea = detailRow.querySelector('[data-type="team"]');
+                const productTextarea = detailRow.querySelector('[data-type="product"]');
+                
+                let appliedText = '';
+                let sourceBadge = '';
+                
+                // Cascade logic: Product → Team → Global
+                if (productTextarea && productTextarea.value.trim() && !productTextarea.closest('.hidden-field')) {
+                    appliedText = productTextarea.value;
+                    sourceBadge = 'Product';
+                } else if (teamTextarea && teamTextarea.value.trim() && !teamTextarea.closest('.hidden-field')) {
+                    appliedText = teamTextarea.value;
+                    sourceBadge = 'Team';
+                } else if (globalTextarea) {
+                    appliedText = globalTextarea.value;
+                    sourceBadge = 'Global';
+                }
+                
+                appliedDisplay.textContent = appliedText;
+                
+                // Update the source badge
+                const sourceDisplay = document.querySelector(`[data-source-for="${elementId}"]`);
+                if (sourceDisplay) {
+                    sourceDisplay.textContent = sourceBadge;
+                }
+            });
+        }
+
+        // Make textareas track changes
+        document.querySelectorAll('.prompt-textarea.editable').forEach(textarea => {
+            textarea.addEventListener('input', function() {
+                trackChange(this);
+                updateCurrentlyAppliedDisplay(this);
+            });
+            textarea.addEventListener('blur', function() {
+                // Keep the change tracked
+            });
+        });
+
+        function updateCurrentlyAppliedDisplay(textarea) {
+            const elementId = textarea.getAttribute('data-element');
+            const detailRow = document.querySelector(`.detail-row[data-element-id="${elementId}"]`);
+            
+            if (!detailRow) return;
+            
+            // Get all textareas for this element
+            const globalTextarea = detailRow.querySelector('.prompt-textarea.read-only');
+            const teamTextarea = detailRow.querySelector('[data-type="team"]');
+            const productTextarea = detailRow.querySelector('[data-type="product"]');
+            
+            let appliedText = '';
+            let sourceBadge = '';
+            
+            // Cascade logic: Product → Team → Global
+            if (productTextarea && productTextarea.value.trim() && !productTextarea.closest('.hidden-field')) {
+                appliedText = productTextarea.value;
+                sourceBadge = 'Product';
+            } else if (teamTextarea && teamTextarea.value.trim() && !teamTextarea.closest('.hidden-field')) {
+                appliedText = teamTextarea.value;
+                sourceBadge = 'Team';
+            } else if (globalTextarea) {
+                appliedText = globalTextarea.value;
+                sourceBadge = 'Global';
+            }
+            
+            // Update the currently applied display
+            const appliedDisplay = document.querySelector(`[data-applied-for="${elementId}"]`);
+            if (appliedDisplay) {
+                appliedDisplay.textContent = appliedText;
+            }
+            
+            // Update the source badge
+            const sourceDisplay = document.querySelector(`[data-source-for="${elementId}"]`);
+            if (sourceDisplay) {
+                sourceDisplay.textContent = sourceBadge;
+            }
+        }
+
+        function trackChange(textarea) {
+            textarea.classList.add('has-changes');
+            editedTextareas.add(textarea);
+            updateChangesBanner();
+            updateTabCounter();
+        }
+        
+        function updateChangesBanner() {
+            const count = editedTextareas.size;
+            const banner = document.getElementById('changesBanner');
+            const countElement = document.getElementById('changesCount');
+            const plural = document.getElementById('changeS');
+            
+            if (count > 0) {
+                banner.classList.remove('hidden');
+                countElement.textContent = count;
+                plural.textContent = count === 1 ? '' : 's';
+            } else {
+                banner.classList.add('hidden');
+            }
+        }
+        
+        function updateTabCounter() {
+            const count = editedTextareas.size;
+            const counter = document.getElementById('tabCounter');
+            
+            if (count > 0) {
+                counter.style.display = 'inline';
+                counter.textContent = '(' + count + ')';
+            } else {
+                counter.style.display = 'none';
+            }
+        }
+        
+        function discardChanges() {
+            if (confirm('Are you sure you want to discard all changes?')) {
+                editedTextareas.forEach(textarea => {
+                    textarea.classList.remove('has-changes');
+                    textarea.value = '';
+                });
+                editedTextareas.clear();
+                updateChangesBanner();
+                updateTabCounter();
+            }
+        }
+        
+        function goToReview() {
+            // Store the count in sessionStorage so Pending Changes can access it
+            sessionStorage.setItem('pendingChangesCount', editedTextareas.size);
+            window.location.href = 'DocumentIngestion-PromptManagement-PendingChanges-MVP.html';
+        }
+
+        // Tree view functions
+        function toggleNode(element) {
+            const toggle = element.querySelector('.tree-toggle');
+            const children = element.nextElementSibling;
+            
+            if (toggle.classList.contains('leaf')) return;
+            
+            if (toggle.textContent === '▼') {
+                toggle.textContent = '▶';
+                children.classList.add('hidden');
+            } else {
+                toggle.textContent = '▼';
+                children.classList.remove('hidden');
+            }
+        }
+
+        // Scope hierarchy mapping
+        const scopePaths = {
+            'global': 'Global',
+            'na': 'North America',
+            'na-mm': 'North America > Middle Market',
+            'na-lc': 'North America > L&C',
+            'crb': 'CRB',
+            'crb-gb': 'CRB > GB'
+        };
+
+        function selectScope(element, scopeId) {
+            // Remove active class from all items
+            document.querySelectorAll('.tree-node-item.active').forEach(item => {
+                item.classList.remove('active');
+            });
+            // Add active class to selected item
+            element.classList.add('active');
+            
+            // Update team field labels with scope path
+            const teamFields = document.querySelectorAll('.team-label');
+            teamFields.forEach(label => {
+                if (scopePaths[scopeId]) {
+                    label.textContent = scopePaths[scopeId] + ' Prompt (Editable)';
+                }
+            });
+            
+            // Update visibility of team fields based on scope
+            updateTeamFieldVisibility(scopeId);
+            
+            // Recalculate currently applied displays
+            recalculateAllCurrentlyApplied();
+        }
+
+        // Initialize on page load
+        function initializePageLoad() {
+            // Set Global as active by default
+            const globalNode = document.querySelector('.tree-node-item');
+            if (globalNode) {
+                globalNode.classList.add('active');
+            }
+            
+            // Update team field labels with Global scope path
+            const teamFields = document.querySelectorAll('.team-label');
+            teamFields.forEach(label => {
+                label.textContent = 'Global Prompt (Editable)';
+            });
+            
+            // Update team field visibility for Global scope
+            updateTeamFieldVisibility('global');
+            
+            // Recalculate currently applied displays
+            recalculateAllCurrentlyApplied();
+        }
+        
+        // Run initialization when DOM is ready
+        if (document.readyState === 'loading') {
+            document.addEventListener('DOMContentLoaded', initializePageLoad);
+        } else {
+            initializePageLoad();
+        }
+    </script>
+</body>
+</html>

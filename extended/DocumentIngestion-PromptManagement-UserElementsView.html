@@ -1,0 +1,399 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Document Ingestion Prompt Management - User Elements View</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Arial, sans-serif;
+            font-size: 13px;
+            background-color: #f5f5f5;
+        }
+
+        .header {
+            background-color: #fff;
+            border-bottom: 1px solid #ccc;
+            padding: 10px 20px;
+            text-align: center;
+            font-weight: bold;
+            font-size: 14px;
+        }
+
+        .tabs {
+            background-color: #fff;
+            border-bottom: 1px solid #ccc;
+            padding: 0 20px;
+            display: flex;
+            gap: 10px;
+        }
+
+        .tab {
+            padding: 10px 20px;
+            cursor: pointer;
+            border-bottom: 2px solid transparent;
+            text-decoration: none;
+            color: #333;
+        }
+
+        .tab.active {
+            color: #0066cc;
+            border-bottom-color: #0066cc;
+            font-weight: bold;
+        }
+
+        .container {
+            display: flex;
+            height: calc(100vh - 90px);
+            background-color: #fff;
+        }
+
+        .nav-panel {
+            width: 180px;
+            background-color: #f9f9f9;
+            border-right: 1px solid #ccc;
+            padding: 10px;
+            overflow-y: auto;
+        }
+
+        .nav-header {
+            font-weight: bold;
+            padding: 8px;
+            margin-bottom: 10px;
+            border-bottom: 1px solid #ccc;
+        }
+
+        .nav-item {
+            padding: 8px;
+            cursor: pointer;
+            border-radius: 3px;
+            margin-bottom: 2px;
+        }
+
+        .nav-item:hover {
+            background-color: #e0e0e0;
+        }
+
+        .nav-item.active {
+            background-color: #0066cc;
+            color: white;
+            font-weight: bold;
+        }
+
+        .content-panel {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .action-bar {
+            padding: 10px 15px;
+            border-bottom: 1px solid #ccc;
+            background-color: #f9f9f9;
+            display: flex;
+            gap: 10px;
+        }
+
+        .action-button {
+            padding: 8px 16px;
+            border: 1px solid #ccc;
+            background-color: #fff;
+            cursor: pointer;
+            border-radius: 3px;
+        }
+
+        .action-button:hover {
+            background-color: #f0f0f0;
+        }
+
+        .action-button.primary {
+            background-color: #0066cc;
+            color: white;
+            border-color: #0066cc;
+        }
+
+        .action-button.primary:hover {
+            background-color: #0052a3;
+        }
+
+        .grid-panel {
+            flex: 1;
+            overflow: auto;
+            padding: 10px;
+        }
+
+        .grid-table {
+            width: 100%;
+            border-collapse: collapse;
+            background-color: #fff;
+        }
+
+        .grid-table th {
+            background-color: #e0e0e0;
+            padding: 10px 8px;
+            text-align: left;
+            border: 1px solid #ccc;
+            font-weight: bold;
+            position: sticky;
+            top: 0;
+            z-index: 10;
+        }
+
+        .grid-table td {
+            padding: 8px;
+            border: 1px solid #ddd;
+            vertical-align: top;
+        }
+
+        .grid-table tr:hover {
+            background-color: #f9f9f9;
+        }
+
+        .element-group {
+            background-color: #e8f4f8;
+            font-weight: bold;
+            cursor: pointer;
+        }
+
+        .element-child {
+            background-color: #fff;
+        }
+
+        .element-child td:first-child {
+            padding-left: 30px;
+        }
+
+        .expand-icon {
+            display: inline-block;
+            width: 16px;
+            margin-right: 5px;
+            font-family: monospace;
+        }
+
+        .editable {
+            background-color: #fffdf0;
+            min-height: 20px;
+            padding: 4px;
+            border-radius: 2px;
+        }
+
+        .editable:hover {
+            background-color: #fff9d0;
+            outline: 1px solid #ccc;
+        }
+
+        .source-badge {
+            display: inline-block;
+            padding: 2px 8px;
+            border-radius: 3px;
+            font-size: 11px;
+            font-weight: normal;
+        }
+
+        .source-global {
+            background-color: #e0e0e0;
+            color: #333;
+        }
+
+        .source-team {
+            background-color: #d4edda;
+            color: #155724;
+        }
+
+        .source-team-lob {
+            background-color: #cce5ff;
+            color: #004085;
+        }
+
+        .hidden {
+            display: none;
+        }
+
+        .collapsed-indicator {
+            font-style: italic;
+            color: #666;
+        }
+    </style>
+</head>
+<body>
+    <div class="header">Document Ingestion Prompt Management - User Elements View</div>
+    
+    <div class="container">
+        <div class="nav-panel">
+            <div class="nav-header">☰ WTW Willis</div>
+            <div class="nav-item">Home</div>
+            <div class="nav-item">All Placements</div>
+            <div class="nav-item">Templates</div>
+            <div class="nav-item">Document Ingestion</div>
+            <div class="nav-item active">→ Prompt Management</div>
+            <div class="nav-item">Service Hub</div>
+            <div class="nav-item">Risk Hub</div>
+            <div class="nav-item">Quality Index Buyers</div>
+            <div class="nav-item">Training Materials</div>
+        </div>
+
+        <div class="right-panel">
+            <div class="tabs">
+                <a href="DocumentIngestion-PromptManagement-ScopeView.html" class="tab">Edit Prompts</a>
+                <a href="DocumentIngestion-PromptManagement-UserElementsView.html" class="tab active">Elements to Scopes</a>
+                <a href="DocumentIngestion-PromptManagement-PendingChanges.html" class="tab">Review and Publish</a>
+            </div>
+
+        <div class="content-panel">
+            <div class="grid-panel">
+                <table class="grid-table">
+                    <thead>
+                        <tr>
+                            <th style="width: 300px;">Element / Scope Name</th>
+                            <th style="width: 150px;">Scope Type</th>
+                            <th style="width: 150px;">Line of Business</th>
+                            <th style="width: 400px;">Prompt Text (Editable)</th>
+                            <th style="width: 200px;">Source</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <!-- Response Type Group -->
+                        <tr class="element-group" onclick="toggleGroup(this, 'response-type-group')">
+                            <td colspan="5"><span class="expand-icon">▼</span><strong>Response Type</strong></td>
+                        </tr>
+                        <tr class="element-child response-type-group">
+                            <td>North America Team</td>
+                            <td>Team</td>
+                            <td>-</td>
+                            <td class="read-only">(inherits global)</td>
+                            <td><span class="source-badge source-global">Global Default</span></td>
+                        </tr>
+                        <tr class="element-child response-type-group">
+                            <td>North America Team - Cyber</td>
+                            <td>Team + LOB</td>
+                            <td>Cyber</td>
+                            <td class="read-only">For cyber risks, identify response type with focus on security...</td>
+                            <td><span class="source-badge source-team-lob">Team+LOB Override</span></td>
+                        </tr>
+                        <tr class="element-child response-type-group">
+                            <td>UK Team</td>
+                            <td>Team</td>
+                            <td>-</td>
+                            <td class="read-only">Extract response type using British terminology...</td>
+                            <td><span class="source-badge source-team">Team Override</span></td>
+                        </tr>
+
+                        <!-- Market Securities Group -->
+                        <tr class="element-group" onclick="toggleGroup(this, 'market-securities-group')">
+                            <td colspan="5"><span class="expand-icon">▼</span><strong>Market Securities</strong></td>
+                        </tr>
+                        <tr class="element-child market-securities-group">
+                            <td>[No overrides configured]</td>
+                            <td>-</td>
+                            <td>-</td>
+                            <td>-</td>
+                            <td><span class="source-badge source-global">Global Default</span></td>
+                        </tr>
+
+                        <!-- Quote Expiry Date Group -->
+                        <tr class="element-group" onclick="toggleGroup(this, 'quote-expiry-group')">
+                            <td colspan="5"><span class="expand-icon">▼</span><strong>Quote Expiry Date</strong></td>
+                        </tr>
+                        <tr class="element-child quote-expiry-group">
+                            <td>North America Team</td>
+                            <td>Team</td>
+                            <td>-</td>
+                            <td class="read-only">For North America, use MM/DD/YYYY format...</td>
+                            <td><span class="source-badge source-team">Team Override</span></td>
+                        </tr>
+                        <tr class="element-child quote-expiry-group">
+                            <td>APAC Team</td>
+                            <td>Team</td>
+                            <td>-</td>
+                            <td class="read-only">Use DD/MM/YYYY format for APAC region...</td>
+                            <td><span class="source-badge source-team">Team Override</span></td>
+                        </tr>
+
+                        <!-- Exposure Group -->
+                        <tr class="element-group" onclick="toggleGroup(this, 'exposure-group')">
+                            <td colspan="5"><span class="expand-icon">▼</span><strong>Exposure</strong></td>
+                        </tr>
+                        <tr class="element-child exposure-group">
+                            <td>[No overrides configured]</td>
+                            <td>-</td>
+                            <td>-</td>
+                            <td>-</td>
+                            <td><span class="source-badge source-global">Global Default</span></td>
+                        </tr>
+
+                        <!-- Premium/Cost Component Group -->
+                        <tr class="element-group" onclick="toggleGroup(this, 'premium-group')">
+                            <td colspan="5"><span class="expand-icon">▼</span><strong>Premium/Cost Component</strong></td>
+                        </tr>
+                        <tr class="element-child premium-group">
+                            <td>North America Team</td>
+                            <td>Team</td>
+                            <td>-</td>
+                            <td class="read-only">Extract all premium components using US currency format...</td>
+                            <td><span class="source-badge source-team">Team Override</span></td>
+                        </tr>
+                        <tr class="element-child premium-group">
+                            <td>North America Team - Property</td>
+                            <td>Team + LOB</td>
+                            <td>Property</td>
+                            <td class="read-only">For property risks, ensure building premiums are separated...</td>
+                            <td><span class="source-badge source-team-lob">Team+LOB Override</span></td>
+                        </tr>
+                        <tr class="element-child premium-group">
+                            <td>North America Team - Casualty</td>
+                            <td>Team + LOB</td>
+                            <td>Casualty</td>
+                            <td class="read-only">For casualty, include employer's liability components...</td>
+                            <td><span class="source-badge source-team-lob">Team+LOB Override</span></td>
+                        </tr>
+                        <tr class="element-child premium-group">
+                            <td>APAC Team - Property</td>
+                            <td>Team + LOB</td>
+                            <td>Property</td>
+                            <td class="read-only">Include typhoon and earthquake premium loadings...</td>
+                            <td><span class="source-badge source-team-lob">Team+LOB Override</span></td>
+                        </tr>
+
+                        <!-- Description Group (collapsed) -->
+                        <tr class="element-group" onclick="toggleGroup(this, 'description-group')">
+                            <td colspan="5"><span class="expand-icon">▶</span><strong>Description</strong> <span class="collapsed-indicator">(collapsed - click to expand)</span></td>
+                        </tr>
+
+                        <!-- Terrorism Coverage Group (collapsed) -->
+                        <tr class="element-group" onclick="toggleGroup(this, 'terrorism-group')">
+                            <td colspan="5"><span class="expand-icon">▶</span><strong>Terrorism Coverage</strong> <span class="collapsed-indicator">(collapsed - click to expand)</span></td>
+                        </tr>
+
+                        <!-- Broker Comments Group (collapsed) -->
+                        <tr class="element-group" onclick="toggleGroup(this, 'broker-comments-group')">
+                            <td colspan="5"><span class="expand-icon">▶</span><strong>Broker Comments</strong> <span class="collapsed-indicator">(collapsed - click to expand)</span></td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+</div>
+
+    <script>
+        function toggleGroup(row, groupClass) {
+            const icon = row.querySelector('.expand-icon');
+            const children = document.querySelectorAll('.' + groupClass);
+            
+            if (icon.textContent === '▼') {
+                icon.textContent = '▶';
+                children.forEach(child => child.classList.add('hidden'));
+            } else {
+                icon.textContent = '▼';
+                children.forEach(child => child.classList.remove('hidden'));
+            }
+        }
+    </script>
+</body>
+</html>
