@@ -496,8 +496,8 @@
 
         <div class="right-panel">
             <div class="tabs">
-                <a href="DocumentIngestion-PromptManagement-ScopeView-MVP.html" class="tab active">Edit Prompts</a>
-                <a href="DocumentIngestion-PromptManagement-PendingChanges-MVP.html" class="tab">Review and Publish <span id="tabCounter" style="display: none;">(0)</span></a>
+                <a href="PromptManagement.html" class="tab active">Edit Prompts</a>
+                <a href="ReviewAndPublish.html" class="tab">Review and Publish <span id="tabCounter" style="display: none;">(0)</span></a>
             </div>
 
             <div class="scope-panel">
@@ -1229,7 +1229,7 @@ Format comments with clear attribution and chronological order.</textarea>
         function goToReview() {
             // Store the count in sessionStorage so Pending Changes can access it
             sessionStorage.setItem('pendingChangesCount', editedTextareas.size);
-            window.location.href = 'DocumentIngestion-PromptManagement-PendingChanges-MVP.html';
+            window.location.href = 'ReviewAndPublish.html';
         }
 
         // Tree view functions

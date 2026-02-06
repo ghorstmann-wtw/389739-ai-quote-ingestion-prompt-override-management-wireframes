@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Document Ingestion Prompt Management - Pending Changes</title>
+    <title>Document Ingestion Prompt Management - Pending Changes (MVP)</title>
     <style>
         * {
             margin: 0;
@@ -297,77 +297,6 @@
             color: #155724;
         }
 
-        .filter-bar {
-            padding: 12px 15px;
-            background-color: #f9f9f9;
-            border-bottom: 1px solid #ddd;
-            display: flex;
-            gap: 12px;
-            align-items: center;
-            flex-wrap: wrap;
-        }
-
-        .filter-group {
-            display: flex;
-            align-items: center;
-            gap: 6px;
-        }
-
-        .filter-group-label {
-            font-weight: 600;
-            font-size: 12px;
-            color: #333;
-        }
-
-        .filter-group-select {
-            padding: 6px 10px;
-            border: 1px solid #ccc;
-            border-radius: 3px;
-            font-size: 12px;
-            min-width: 110px;
-            background-color: #fff;
-        }
-
-        .quick-filters {
-            padding: 10px 15px;
-            background-color: #f5f5f5;
-            border-bottom: 1px solid #ddd;
-            display: flex;
-            gap: 15px;
-            align-items: center;
-        }
-
-        .quick-filters-label {
-            font-weight: 600;
-            font-size: 12px;
-            color: #333;
-            margin-right: 5px;
-        }
-
-        .quick-filter-button {
-            padding: 5px 12px;
-            border: 1px solid #ccc;
-            background-color: #fff;
-            cursor: pointer;
-            border-radius: 3px;
-            font-size: 12px;
-            color: #333;
-        }
-
-        .quick-filter-button.active {
-            background-color: #0066cc;
-            color: white;
-            border-color: #0066cc;
-        }
-
-        .quick-filter-button:hover {
-            background-color: #f0f0f0;
-        }
-
-        .quick-filter-button.active:hover {
-            background-color: #0052a3;
-        }
-
         .right-panel {
             flex: 1;
             display: flex;
@@ -379,7 +308,9 @@
             flex: 1;
             overflow: auto;
             padding: 10px;
-        }        .change-badge.override {
+        }
+
+        .change-badge.override {
             background-color: #fff3cd;
             color: #856404;
         }
@@ -418,10 +349,18 @@
             color: #999;
             font-size: 14px;
         }
+
+        .expand-icon {
+            display: inline-block;
+            width: 16px;
+            margin-right: 5px;
+            font-family: monospace;
+            cursor: pointer;
+        }
     </style>
 </head>
 <body>
-    <div class="header">Document Ingestion Prompt Management - Pending Changes</div>
+    <div class="header">Document Ingestion Prompt Management - Pending Changes (MVP)</div>
     
     <div class="container">
         <div class="nav-panel">
@@ -439,52 +378,11 @@
 
         <div class="right-panel">
             <div class="tabs">
-                <a href="DocumentIngestion-PromptManagement-ScopeView.html" class="tab">Edit Prompts</a>
-                <a href="DocumentIngestion-PromptManagement-UserElementsView.html" class="tab">Elements to Scopes</a>
-                <a href="DocumentIngestion-PromptManagement-PendingChanges.html" class="tab active">Review and Publish <span id="tabCounter" style="display: none;">(0)</span></a>
+                <a href="PromptManagement.html" class="tab">Edit Prompts</a>
+                <a href="ReviewAndPublish.html" class="tab active">Review and Publish <span id="tabCounter" style="display: none;">(0)</span></a>
             </div>
 
             <div class="grid-panel">
-                <div class="filter-bar">
-                    <div class="filter-group">
-                        <label class="filter-group-label">Team:</label>
-                        <select class="filter-group-select" id="filterTeam">
-                            <option value="">All Teams</option>
-                            <option value="na">North America</option>
-                            <option value="uk">UK</option>
-                            <option value="apac">APAC</option>
-                        </select>
-                    </div>
-
-                    <div class="filter-group">
-                        <label class="filter-group-label">Segment:</label>
-                        <select class="filter-group-select" id="filterSegment">
-                            <option value="">All Segments</option>
-                            <option value="mm">Middle Market</option>
-                            <option value="lc">L&C</option>
-                            <option value="specialty">Specialty</option>
-                        </select>
-                    </div>
-
-                    <div class="filter-group">
-                        <label class="filter-group-label">Product:</label>
-                        <select class="filter-group-select" id="filterProduct">
-                            <option value="">All Products</option>
-                            <option value="construction">Construction</option>
-                            <option value="property">Property</option>
-                            <option value="cyber">Cyber</option>
-                            <option value="do">D&O</option>
-                        </select>
-                    </div>
-                </div>
-
-                <div class="quick-filters">
-                    <span class="quick-filters-label">Quick Filters:</span>
-                    <button class="quick-filter-button active" onclick="applyQuickFilter('all')">All Changes</button>
-                    <button class="quick-filter-button" onclick="applyQuickFilter('current')">Current Scope Only</button>
-                    <button class="quick-filter-button" onclick="applyQuickFilter('today')">Changed Today</button>
-                </div>
-
                 <div class="summary-bar">
                     <div class="summary-info">
                         <span id="changeCount">12</span> Pending Changes Across <span id="scopeCount">3</span> Scopes
@@ -499,7 +397,6 @@
                     <input type="checkbox" id="selectAll"> <label for="selectAll">Select All</label>
                     <button class="toolbar-button primary" id="publishSelected">Publish Selected</button>
                     <button class="toolbar-button primary" id="publishAll">Publish All</button>
-                    <button class="toolbar-button primary" id="publishScope">Publish Current Scope</button>
                     <button class="toolbar-button" id="discardSelected">Discard Selected</button>
                 </div>
 
@@ -720,56 +617,6 @@
             counter.style.display = 'inline';
             counter.textContent = '(' + pendingCount + ')';
         }
-
-        // Quick filter functionality
-        function applyQuickFilter(filterType) {
-            // Update active button
-            document.querySelectorAll('.quick-filter-button').forEach(btn => {
-                btn.classList.remove('active');
-            });
-            event.target.classList.add('active');
-
-            // Apply filter logic (placeholder for now)
-            console.log('Applied quick filter:', filterType);
-        }
-
-        // Filter event listeners
-        document.getElementById('filterTeam').addEventListener('change', applyFilters);
-        document.getElementById('filterSegment').addEventListener('change', applyFilters);
-        document.getElementById('filterProduct').addEventListener('change', applyFilters);
-
-        function applyFilters() {
-            const teamFilter = document.getElementById('filterTeam').value;
-            const segmentFilter = document.getElementById('filterSegment').value;
-            const productFilter = document.getElementById('filterProduct').value;
-
-            // Show/hide rows based on filter
-            document.querySelectorAll('.hierarchy-row').forEach(row => {
-                let shouldShow = true;
-
-                if (teamFilter) {
-                    shouldShow = row.className.includes(teamFilter) || 
-                                 row.className.includes(teamFilter + '-child');
-                }
-
-                if (shouldShow && segmentFilter) {
-                    shouldShow = row.className.includes(segmentFilter) || 
-                                 row.className.includes(segmentFilter + '-child');
-                }
-
-                if (shouldShow && productFilter) {
-                    shouldShow = row.className.includes(productFilter) || 
-                                 row.className.includes(productFilter + '-child');
-                }
-
-                row.classList.toggle('hidden', !shouldShow);
-            });
-        }
-
-        // Publish Current Scope button
-        document.getElementById('publishScope').addEventListener('click', function() {
-            alert('Publishing changes for current scope only...');
-        });
 
         // Make editable value cells actually editable with proper styling
         document.querySelectorAll('.editable-value').forEach(cell => {
